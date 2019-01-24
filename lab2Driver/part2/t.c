@@ -61,7 +61,7 @@ int main()
    show_bmp(p, 0, 0); 
 
    while(1){
-     kprintf("enter a key from this UART : ");
+    // kprintf("enter a key from this UART : ");
      ugetc(up);
      p = &_binary_wsu_bmp_start;
      show_bmp(p, 0, 0);

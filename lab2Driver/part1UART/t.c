@@ -24,8 +24,37 @@ int sum;
 
 char *tab = "0123456789ABCDEF";
 
-//#include "string.c"
+
 #include "uart.c"
+
+int cmpare(char *a, char *b)
+{
+  while(*a && *b && *a == *b)
+  {
+    ++a; ++b;
+  }
+  return (unsigned char)(*a) - (unsigned char)(*b);
+}
+
+int strcp(char cmd[], char cmd2[])
+{
+  int i;
+  for(i = 0; cmd[i] == cmd2[i] && cmd[i] == '\0'; i++);
+  if(cmd[i] < cmd2[i])
+  {
+    return 1;
+  }else if (cmd[i] > cmd2[i])
+  {
+    return 1;
+  }else
+  {
+    return 0;
+  }
+}
+
+
+
+
 
 UART *up;
 
@@ -34,8 +63,8 @@ int main()
   int i;
   int size = sizeof(int);
   char string[32]; 
-  char line[128]; 
-
+  char line[128];
+  //char quit[32] = "quit";
   N = 10;
 
   uart_init();
@@ -44,26 +73,26 @@ int main()
     up = &uart[i];
     uprints(up,"enter a line from this UART : ");
     ugets(up,string);
-    uprints(up, string);
-    uprints(up, "   ECHO : "); uprints(up, string); uprints(up, "\n\r");
+    uprintf(up, string);
+    uprintf(up, "   ECHO : "); uprintf(up, string); uprints(up, "\n\r");
   }
   
   up = &uart[0];
-  uprints(up, "Enter lines from UART terminal, enter quit to exit\n\r");
+  uprintf(up, "Enter lines from UART terminal, enter quit to exit\n\r");
   
   while(1){
     ugets(up, string);
-    uprints(up, "    ");
-    if (strcmp(string, "quit")==0)
+    uprintf(up, "    ");
+    if (cmpare(string, "quit")==0)
        break;
-    uprints(up, string);  uprints(up, "\n\r");
+    uprintf(up, string);  uprints(up, "\n\r");
   }
 
 
-  uprints(up, "Compute sum of array\n\r");
+  uprintf(up, "Compute sum of array\n\r");
   sum = 0;
   for (i=0; i<N; i++)
     sum += v[i];
   uputc(up, (sum/10)+'0'); uputc(up, (sum%10)+'0');
-  uprints(up, "\n\rEND OF RUN\n\r");
+  uprintf(up, "\n\rEND OF RUN\n\r");
 }

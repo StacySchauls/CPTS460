@@ -351,5 +351,5 @@ int show_bmp(char *p, int startRow, int startCol)
     }
     p -= r2;
   }
-  kprintf("\nBMP image height=%d width=%d\n", h, w);
+ // kprintf("\nBMP image height=%d width=%d\n", h, w);
 }

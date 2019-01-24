@@ -1,15 +1,25 @@
-#include <stdio.h>
-#include <string.h>
+/********************************************************************
+  Copyright 2010-2017 K.C. Wang, <kwang@eecs.wsu.edu>
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ ********************************************************************/
 #define DR   0x00
 #define FR   0x18
 
 #define RXFE 0x10
 #define TXFF 0x20
+//char *tab = "0123456789ABCDEF";
 
-char *ctable = "0123456789ABCDEF";
-typedef unsigned int u32;
-int BASE = 10;
-int BASE8 = 8;
 typedef struct uart{
   char *base;
   int n;
@@ -26,20 +36,8 @@ int uart_init()
     up->base = (char *)(0x10009000 + i*0x1000);
     up->n = i;
   }
-  uart[3].base = (char *)(0x1000C000); // uart3 at 0x10009000
+  // uart[3].base = (char *)(0x10009000); // uart3 at 0x10009000
 }
-
-int rpu(u32 x)
-{
-  char c;
-  if(x)
-  {
-    c = ctable[x % BASE];
-    rpu(x / BASE);
-    putchar(c);
-  }
-}
-
 
 int ugetc(UART *up)
 {
@@ -59,7 +57,7 @@ int ugets(UART *up, char *s)
     uputc(up, *s);
     s++;
   }
- *s = 0;
+  *s = 0;
 }
 
 int uprints(UART *up, char *s)
@@ -68,31 +66,89 @@ int uprints(UART *up, char *s)
     uputc(up, *s++);
 }
 
-int fuprintf(UART *up, char *fmt, ...)
+int urpx(UART *up,int x)
 {
-  int index;
-  char *cp;
-  cp += sizeof(char *);
-  for(index = 0; index < strlen(fmt); index++)
+  char c;
+  if(x)
   {
-    if(fmt[index] == '%')
-    {
-      //found a %. incr fmt and check the value
-      switch(fmt[index + 1])
-      {
-        case 'c':
-          putchar(*cp);
-          cp += sizeof(char *);
-          break;
-        case 's':
-          break;
+    c = tab[x % 16];
+    urpx(up,x / 16);
+  }
+  uputc(up, c);
+}
 
-          uprints(up,*((char**)cp));
-          break;
-        case 'd':
-          break;
-      }
+int uprintx(UART *up, int x)
+{
+  uputc(up,'0'); uputc(up,'x');
+  if(x==0)
+    uputc(up,'0');
+  else
+    urpx(up,x);
+  uputc(up,' ');
+}
+
+int urpu(UART *up,int x)
+{
+  char c;
+  if(x)
+  {
+    c = tab[x % 10];
+    urpu(up,x /10);
+  }
+  uputc(up,x);
+}
+
+int uprintu(UART *up,int x)
+{
+  if(x==0)
+    uputc(up,'0');
+  else
+    urpu(up,x);
+  uputc(up,' ');
+}
+
+int uprinti(UART *up, int x)
+{
+  if(x<0)
+  {
+    uputc(up,'-');
+    x =-x;
+  }
+  uprintu(up,x);
+}
+
+int uprintf(UART *up,char *fmt, ...)
+{
+  int *ip;
+  char *cp;
+  cp = fmt;
+  ip = (int *)&fmt + 1;
+
+  while(*cp)
+  {
+    if(*cp != '%')
+    {
+      uputc(up,*cp);
+      if(*cp == '\n')
+        uputc(up,'\r');
+      cp++;
+      continue;
     }
+    cp++;
+    switch(*cp)
+    {
+      case 'c': uputc(up,(char)*ip); break;
+      case 's': uprints(up,(char *)*ip);break;
+      case 'd': uprinti(up, *ip); break;
+      case 'u': uprintu(up,*ip); break;
+      case 'x': uprintx(up,*ip); break;
+
+    }
+    cp++; ip++;
   }
 }
+
+
+
+
 
