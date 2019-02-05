@@ -4,25 +4,25 @@
 /********************************************************************************
 //0    1    2    3    4    5    6    7     8    9    A    B    C    D    E    F
 char ltab[] = {
-  0,   0,   0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,   0,   0,
-  0,   0,   0,   0,   0,  'q', '1',  0,    0,   0,  'z', 's', 'a', 'w', '2',  0,
-  0,  'c', 'x', 'd', 'e', '4', '3',  0,    0,  ' ', 'v', 'f', 't', 'r', '5',  0,
-  0,  'n', 'b', 'h', 'g', 'y', '6',  0,    0,   0,  'm', 'j', 'u', '7', '8',  0,
-  0,  ',', 'k', 'i', 'o', '0', '9',  0,    0,  '.', '/', 'l', ';', 'p', '-',  0,
-  0,   0,  '\'', 0,  '[', '=',  0,   0,    0,   0, '\r', ']',  0, '\\',  0,   0,
-  0,   0,   0,   0,   0,   0,  '\b', 0,    0,   0,   0,   0,   0,   0,   0,   0
+0,   0,   0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,   0,   0,
+0,   0,   0,   0,   0,  'q', '1',  0,    0,   0,  'z', 's', 'a', 'w', '2',  0,
+0,  'c', 'x', 'd', 'e', '4', '3',  0,    0,  ' ', 'v', 'f', 't', 'r', '5',  0,
+0,  'n', 'b', 'h', 'g', 'y', '6',  0,    0,   0,  'm', 'j', 'u', '7', '8',  0,
+0,  ',', 'k', 'i', 'o', '0', '9',  0,    0,  '.', '/', 'l', ';', 'p', '-',  0,
+0,   0,  '\'', 0,  '[', '=',  0,   0,    0,   0, '\r', ']',  0, '\\',  0,   0,
+0,   0,   0,   0,   0,   0,  '\b', 0,    0,   0,   0,   0,   0,   0,   0,   0
 };
 
 char utab[] = {
-  0,   0,   0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,   0,   0,
-  0,   0,   0,   0,   0,  'Q', '!',  0,    0,   0,  'Z', 'S', 'A', 'W', '@',  0,
-  0,  'C', 'X', 'D', 'E', '$', '#',  0,    0,  ' ', 'V', 'F', 'T', 'R', '%',  0,
-  0,  'N', 'B', 'H', 'G', 'Y', '^',  0,    0,   0,  'M', 'J', 'U', '&', '*',  0,
-  0,  '<', 'K', 'I', 'O', ')', '(',  0,    0,  '>', '?', 'L', ':', 'P', '_',  0,
-  0,   0,  '"',  0,  '{', '+',  0,   0,    0,   0,  '\r','}',  0,  '|',  0,   0,
-  0,   0,   0,   0,   0,   0,  '\b', 0,    0,   0,   0,   0,   0,   0,   0,   0
+0,   0,   0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,   0,   0,
+0,   0,   0,   0,   0,  'Q', '!',  0,    0,   0,  'Z', 'S', 'A', 'W', '@',  0,
+0,  'C', 'X', 'D', 'E', '$', '#',  0,    0,  ' ', 'V', 'F', 'T', 'R', '%',  0,
+0,  'N', 'B', 'H', 'G', 'Y', '^',  0,    0,   0,  'M', 'J', 'U', '&', '*',  0,
+0,  '<', 'K', 'I', 'O', ')', '(',  0,    0,  '>', '?', 'L', ':', 'P', '_',  0,
+0,   0,  '"',  0,  '{', '+',  0,   0,    0,   0,  '\r','}',  0,  '|',  0,   0,
+0,   0,   0,   0,   0,   0,  '\b', 0,    0,   0,   0,   0,   0,   0,   0,   0
 };
-**********************************************************************************/
+ **********************************************************************************/
 // KBD registers from base address
 #define KCNTL 0x00    
 #define KSTAT 0x04
@@ -43,7 +43,7 @@ int kputc(char);
 int shifted = 0;  //these are control variables
 int release = 0;
 int control = 0;
-
+int control_d = 0;
 int kbd_init()
 {
   KBD *kp = &kbd;
@@ -65,9 +65,9 @@ int kbd_init()
   key press    =>        scanCode
   key release  =>   0xF0 scanCode
 Example:
- press   'a'   =>          0x1C
- release 'a'   =>   0xF0   0x1C
-*****************************************/
+press   'a'   =>          0x1C
+release 'a'   =>   0xF0   0x1C
+ *****************************************/
 
 /* have to press a key to generate interrupt go into this handler */
 
@@ -79,7 +79,7 @@ void kbd_handler()
   color = YELLOW;
   scode = *(kp->base + KDATA);  // get scan code from KDATA reg => clear IRQ  gets the key that was pressed
 
- // printf("scanCode = %x\n", scode);
+  // printf("scanCode = %x\n", scode);
   if(scode == 0x12){
     shifted = 1;
   }
@@ -89,21 +89,22 @@ void kbd_handler()
   }
 
   if (scode == 0xF0){       // key release 
-     release = 1;     // set flag
-     return;
+    release = 1;     // set flag
+    return;
   }
 
   //left shit == 0x12
   //left ctrl = 0x14
-  
+
   if (release && scode == 0x12){    // next scan code following key release
     //printf("scancode = %x\n" ,scode);
     release = 0;           // clear flag 
-     shifted = 0;
-     return;
+    shifted = 0;
+    return;
   }else if(release && scode == 0x14){
     release = 0;
     control = 0;
+    control_d = 0;
     return;
   }else if(release){
     release = 0;
@@ -111,22 +112,29 @@ void kbd_handler()
   }
 
 
-/*should put our code here to get the shift key
- * need shift to be held down, so relase needs to be 0 */
-  
+  /*should put our code here to get the shift key
+   * need shift to be held down, so relase needs to be 0 */
+
 
   if(control && scode == 0x21){
     printf("Message from Ctrl-C\n");
     return;
   }
+  if(control && scode == 0x23){
+    printf("Message from Ctrl - D. Make c = 0x04\n");
+    c = 0x04;
+    control_d = 1;
+  }
 
-  if (!shifted)
-     c = ltab[scode];
-  else               // ONLY IF YOU can catch LEFT or RIGHT shift key
-     c = utab[scode];
-  
+  if(!control_d){
+    if (!shifted)
+      c = ltab[scode];
+    else               // ONLY IF YOU can catch LEFT or RIGHT shift key
+      c = utab[scode];
+  }
+
   printf("c=%x %c\n", c, c);
-  
+
   kp->buf[kp->head++] = c;
   kp->head %= 128;
   kp->data++; kp->room--;
@@ -141,9 +149,9 @@ int kgetc()
   while(kp->data == 0);
 
   lock();
-    c = kp->buf[kp->tail++];
-    kp->tail %= 128;
-    kp->data--; kp->room++;
+  c = kp->buf[kp->tail++];
+  kp->tail %= 128;
+  kp->data--; kp->room++;
   unlock();
   return c;
 }
