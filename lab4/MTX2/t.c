@@ -50,9 +50,9 @@ int init()
 
 int menu()
 {
-  printf("****************************************\n");
-  printf(" ps fork switch exit jesus sleep wakeup \n");
-  printf("****************************************\n");
+  printf("********************************************\n");
+  printf(" ps fork switch exit jesus sleep wakeup wait\n");
+  printf("********************************************\n");
 }
 
 char *status[ ] = {"FREE", "READY", "SLEEP", "ZOMBIE"};
@@ -88,50 +88,7 @@ int do_jesus()
   }
   printList("readyQueue", readyQueue);
 }
-
-int printChildList(PROC *p){
-int i;
-char *stat;
-  for(i=0; i<NPROC; i++){
-    if(proc[i].ppid == running->pid){
-     if(proc[i].status == FREE){
-        stat = "FREE";
-      }else if(proc[i].status == READY){
-        stat = "READY";
-      }else if(proc[i].status == ZOMBIE){
-        stat = "ZOMBIE";
-      }else{
-        stat = "SLEEP";
-      }
-      printf("[%d %s]->",proc[i].pid, stat);
-    }
-  }
-  printf("[NULL]\n");
-  /*
   
-  printf("Child list = ");
-  while(1){
-    if(p->child){
-      printf("%d,",p->child->pid);
-
-      if(p->child->status == FREE){
-        stat = "FREE";
-      }else if(p->child->status == READY){
-        stat = "READY";
-      }else if(p->child->status == ZOMBIE){
-        stat = "ZOMBIE";
-      }else{
-        stat = "SLEEP";
-      }
-      printf("[%d:%s]->",p->child, stat);
-    }
-    printf("[NULL]\n");
-    break;
-  }
-  */
-  return 0;
-}
-    
 int body()   // process body function
 {
   int c;
@@ -142,7 +99,9 @@ int body()   // process body function
     printf("proc %d running: parent=%d\n", running->pid,running->ppid);
     printList("readyQueue", readyQueue);
     printSleep("sleepList ", sleepList);
+    printf("Child list: ");
     printChildList(running);
+    putchar(10);
     menu();
     printf("enter a command : ");
     fgets(cmd, 64, stdin);
@@ -179,16 +138,33 @@ int kfork()
   p->status = READY;
   p->priority = 1;       // ALL PROCs priority=1, except P0
   p->ppid = running->pid;
+  p->parent = running;
   
+  /* CODE TO CREATE THE FAMILY TREE */  
+  // Check if there is a child for the current process
+  if(p->parent->child == 0){
+    p->parent->child = p;
+  }else{  //if there is a child, go throught the siblings
+    PROC *temp = p->parent->child;
+    while(temp->sibling != 0){
+      temp = temp->sibling;
+    }
+    temp->sibling = p;
+  }
+
+  p->sibling = 0;
+  p->child = 0;
+
   /************ new task initial stack contents ************
    kstack contains: |retPC|eax|ebx|ecx|edx|ebp|esi|edi|eflag|
                       -1   -2  -3  -4  -5  -6  -7  -8   -9
   **********************************************************/
-  for (i=1; i<10; i++)               // zero out kstack cells
+  for (i=1; i<15; i++)               // zero out kstack cells
       p->kstack[SSIZE - i] = 0;
   p->kstack[SSIZE-1] = (int)body;    // retPC -> body()
   p->ksp = &(p->kstack[SSIZE - 9]);  // PROC.ksp -> saved eflag 
-  enqueue(&readyQueue, p);           // enter p into readyQueue
+  enqueue(&readyQueue, p);          // enter p into readyQueue
+    
   return p->pid;
 }
 
@@ -197,11 +173,28 @@ int do_kfork()
    int child = kfork();
    if (child < 0)
       printf("kfork failed\n");
-   else{
-      printf("proc %d kforked a child = %d\n", running->pid, child); 
+    else{
+      printf("proc %d forked a child = %d\n", running->pid, child);
       printList("readyQueue", readyQueue);
-   }
+    }
    return child;
+}
+
+
+int printChildList(PROC *p){
+  
+  if(p == NULL){
+   // printf("p is null");
+    return;
+  }
+  
+    
+    printf("[%d %s]->",p->pid, status[p->status]);
+    printChildList(p->child);
+    printChildList(p->sibling);
+    
+      
+  return 0;
 }
 
 int do_switch()

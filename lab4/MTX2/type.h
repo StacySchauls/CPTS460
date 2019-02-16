@@ -1,12 +1,19 @@
 /*********** type.h file ************/
 #define NPROC    9          // number of PROCs
-#define SSIZE 1024          // stack size = 4KB
-
+#define SSIZE 1024         // stack size = 4KB
+#define BSIZE    8
 // PROC status
 #define FREE     0          
 #define READY    1
 #define SLEEP    2
 #define ZOMBIE   3
+#define BLOCK    4
+
+
+struct semaphore{
+  int value;
+  struct proc *queue;
+};
 
 typedef struct proc{
     struct proc *next;      // next proc pointer       
