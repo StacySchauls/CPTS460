@@ -1,0 +1,74 @@
+﻿
+              CS460 Midterm Exam Check List
+
+A. Text Edit ANSWERS to questions in a separate file with name and ID
+
+   NAME: Stacy Schauls  ID: 11460535
+
+Q1: P0 Cannot call kgetc() because the process goes to sleep, and when p0 is alone,there is no other process to give it away to, so p0 cannot go to sleep.
+
+Q2: Show A diragam with reasons for the control flows 
+     Before any key is pressed:
+		while there is no data we are sleeping P1. P0 loops infinitely now because ready queue is empty
+
+    When a key is pressed.
+		Trigger interrupt handler at vector table, execute the interrupt handler which will wake-up P1 and return it to the ready queue,P0 switches to P1 since ready queue is no longer empty, and we go back to the loop.
+
+Q3: When a keyboard interrupt executes, the handler processes the input then wakes both P1 and P2. P1 then runs kgetc(), which puts P1 back to sleep. P2 then executes and returns c (the same value that was set for P1.), then goes to sleep in kgetc(). This all happens based off of 1 keyboard interrupt.
+
+Q4: Interrupt handlers can only call wakeup but never sleep is because when the interrupt occurs the processor goes into an interrupt exception state, during this state the scheduler is disabled, If we try to sleep while in the interrupt handler, sleep will tell the scheduler to de-queue the next process, but since scheduler is disabled, the program will hang.
+
+
+
+B. DEMO OF PROGRAMS
+
+1. LAB4: Ask student to run their LAB4 code, which MUST show
+             ps   fork  exit  wait
+(1). P1: fork       ==>  P2 in readyQueue AND P1 childList = P2
+(2). P1: switch     ==>  P2 runs with no child
+(3). P2: fork, fork ==>  P2 childList should be P3->P4
+(4). P2: exit       ==>  P1 runs with childList = P2->P3->p4
+(5). P1: wait       ==>  must show it freed a ZOMBIE P2
+
+
+2. KBD Driver using sleep/wakeup:
+
+(1). P1: fork       ==>  P2 in readyQueue
+(2). P1: ps         ==>  show ps by P1
+(3). P1: switch     ==>  P2 starts to run
+(4). P2: ps         ==>  show ps by P2
+
+3. Pipe with BROKEN pipe and no writer cases
+
+(1). P0: initialize a pipe;
+         kfork() P1 as pipeWriter; kfork() P2 as pipeReader;
+         switch to run P1.
+
+(2). P1: enter a line to write  OR  a NULL line to exit;
+         e.g. 12345 ==> should only write 5 chars to pipe
+     P1: enter a NULL line ==> P1 should exit
+
+(3). P2: enter bytes to read  OR  0 to exit;
+         e.g. nytes = 10  ==> should read 5 chars
+
+     P2: nbytes = 20      ==> should return 0 because no data and no writer
+
+Run the program again:
+
+(4). P1: try to write 1234567890 to pipe => write 8 chars and SLEEP
+
+(5). P2: try to read 20 bytes ==> should return with 8 chars read
+     P2: read 0 byte          ==> P2 shoud exit switch to P1
+
+(6). P1: must see a BROKEN PIPE condition and exit
+
+
+4. TimerQueue:
+
+(1). P0 kfork P1, P2, P3, all run body()
+(2). P1: enter a time value, e.g. 30
+(3). P2: enter a time value, e.g. 20
+(4). P3: enter a time value, e.g.  5
+
+MUST show the timerQueue on each second, AND 
+              procs woken up when their timer expires.

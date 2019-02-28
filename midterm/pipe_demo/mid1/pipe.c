@@ -10,25 +10,23 @@ typedef struct pipe{
 
 extern PROC *running;
 extern PROC *readyQueue;
-extern PIPE *kpipe;
+// extern PIPE *kpipe;
 
 
-
-PIPE pipe[NPIPE];
+PIPE pipe;
 
 
 int pipe_init()
 {
   int i;
   printf("pipe_init()\n");
-  for (i=0; i<NPIPE; i++){
-    pipe[i].status = 0;
-  }
+    pipe.status = 0;
+  
 }
 
 int show_pipe()
 {
-  PIPE *p = pipe;
+  PIPE *p = &pipe;
   int i;
   printf("----------------------------------------\n");
   printf("room=%d data=%d buf=", p->room, p->data);
@@ -38,7 +36,7 @@ int show_pipe()
   printf("----------------------------------------\n");
 }
 
-int kpipe_()
+int kpipe()
 {
   int i;
   PIPE *p = &pipe;
@@ -47,7 +45,7 @@ int kpipe_()
   p->status = FREE;
 }
 
-
+/*
 PIPE *create_pipe()
 {
   int i; PIPE *p;
@@ -64,6 +62,7 @@ PIPE *create_pipe()
   printf("OK\n");
   return p;
 }
+*/
 
 int read_pipe(PIPE *p, char *buf, int n)
 {
@@ -112,7 +111,9 @@ int write_pipe(PIPE *p, char *buf, int n)
   while(n){
     w = 0;
     while(p->room){
-      p->buf[p->head++] = *buf;
+      p->buf[p->head] = *buf;
+      printf("%c\n", p->buf[p->head]);
+      p->head++;
       p->head %= PSIZE;
       p->data++; p->room--; buf++; w++; r++; n--;
       if (n==0)

@@ -215,8 +215,7 @@ void kbd_handler()
   kp->data++; kp->room--;
 }
 
-int kgetc()
-{
+int kgetc(){
   char c;
   KBD *kp = &kbd;
   //printf("%d in kgetc\n", running->pid); 

@@ -45,7 +45,7 @@ void copy_vectors(void) {
 
 TIMER *tp[4];
 PIPE *kpipe;
-
+TQE *tq, tqe[NPROC];
 void IRQ_handler()
 {
     int vicstatus, sicstatus;
@@ -124,6 +124,9 @@ int do_time(){
   printf("Enter a time: ");
   t = geti();
   printf("Time entered is: %d\n",t);
+  tqe[running->pid].time = t;
+  tqe[running->pid].proc = running;
+  printf("tqe[%d] time is now %d\n", running->pid,tqe[running->pid].time );
 }
     
 int body()   // process body function
@@ -161,8 +164,8 @@ int body()   // process body function
       do_wakeup();
    if(strcmp(cmd, "wait")==0)
      do_wait();
-     if(strcmp(cmd, "t" == 0))
-      do_time();
+   // if(strcmp(cmd, "t" == 0))
+     // do_time();
   }
 }
 

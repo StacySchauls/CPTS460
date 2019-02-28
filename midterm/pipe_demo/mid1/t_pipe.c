@@ -34,6 +34,9 @@ int scheduler(); int kgetc();
 
 int kprintf(char *fmt, ...);
 
+PIPE pipe;
+
+
 void copy_vectors(void) {
     extern u32 vectors_start;
     extern u32 vectors_end;
@@ -44,7 +47,7 @@ void copy_vectors(void) {
 }
 
 TIMER *tp[4];
-PIPE *kpipe;
+
 
 void IRQ_handler()
 {
@@ -103,70 +106,9 @@ int menu()
 
 char *status[ ] = {"FREE", "READY", "SLEEP", "ZOMBIE"};
 
-int do_ps()
-{
-  int i;
-  PROC *p;
-  printf("PID  PPID  status\n");
-  printf("---  ----  ------\n");
-  for (i=0; i<NPROC; i++){
-    p = &proc[i];
-    printf(" %d    %d    ", p->pid, p->ppid);
-    if (p == running)
-      printf("RUNNING\n");
-    else
-      printf("%s\n", status[p->status]);
-  }
-}
 
-int do_time(){
-  int t = 0;
-  printf("Enter a time: ");
-  t = geti();
-  printf("Time entered is: %d\n",t);
-}
-    
-int body()   // process body function
-{
-  int c;
-  char cmd[64];
-  int i = 0;
-  printf("proc %d starts from body()\n", running->pid);
-  while(1){
-    for(i = 0; i<64; i++){
-      cmd[i] = 0;
-    }
-    printf("***************************************\n");
-    printf("proc %d running: parent=%d\n", running->pid,running->ppid);
-    printList("readyQueue", readyQueue);
-    printSleepList(sleepList);
-    printf("Child list: ");
-    printChildList(running);
-    printf("\n");
-    menu();
-    printf("enter a command : ");
-    gets(cmd);
-    
-    if (strcmp(cmd, "ps")==0)
-      do_ps();
-    if (strcmp(cmd, "fork")==0)
-      do_kfork();
-    if (strcmp(cmd, "switch")==0)
-      do_switch();
-    if (strcmp(cmd, "exit")==0)
-      do_exit();
-   if (strcmp(cmd, "sleep")==0)
-      do_sleep();
-   if (strcmp(cmd, "wakeup")==0)
-      do_wakeup();
-   if(strcmp(cmd, "wait")==0)
-     do_wait();
-     if(strcmp(cmd, "t" == 0))
-      do_time();
-  }
-}
 
-int kfork()
+int kfork(int func, int priority)
 {
   int i;
   PROC *p = dequeue(&freeList);
@@ -177,7 +119,7 @@ int kfork()
   p->ppid = running->pid;
   p->parent = running;
   p->status = READY;
-  p->priority = 1;
+  p->priority = priority;
 
 
    if(p->parent->child == 0){
@@ -203,7 +145,7 @@ int kfork()
   for (i=1; i<15; i++)
     p->kstack[SSIZE-i] = 0;        // zero out kstack
 
-  p->kstack[SSIZE-1] = (int)body;  // saved lr -> body()
+  p->kstack[SSIZE-1] = (int)func;  // saved lr -> body()
   p->ksp = &(p->kstack[SSIZE-14]); // saved ksp -> -14 entry in kstack
  
   enqueue(&readyQueue, p);
@@ -222,17 +164,29 @@ int printChildList(PROC *p){
   return 0;
 }
 
-int do_kfork()
+
+
+int INIT()
 {
-   int child = kfork();
-   if (child < 0)
-      printf("kfork failed\n");
-   else{
-      printf("proc %d kforked a child = %d\n", running->pid, child); 
-      printList("readyQueue", readyQueue);
-   }
-   return child;
+  int pid, status;
+  PIPE *p = &pipe;
+  printf("P1 running: create pipe and writer reader processes\n");
+  // kpipe = create_pipe();
+  kpipe();
+  kfork(pipe_writer,1);
+  kfork(pipe_reader,1);
+  
+  printf("P1 waits for ZOMBIE child\n");
+  while(1){
+    pid = kwait(&status);
+    if (pid < 0){
+      printf("no more child, P1 loops\n");
+      while(1);
+    }
+    printf("P1 buried a ZOMBIE child %d\n", pid);
+  }
 }
+
 
 int do_wait(){
   kwait(&running->status);
@@ -265,87 +219,43 @@ int do_wakeup()
   kwakeup(event);
 }
 
-int INIT()
+int main()
 {
   int pid, status;
-  PIPE *p = &pipe;
-  printf("P1 running: create pipe and writer reader processes\n");
-  kpipe = create_pipe();
-  kfork(pipe_writer);
-  kfork(pipe_reader);
-  //printf("P1 waits for ZOMBIE child\n");
-  while(1){
-    pid = kwait(&status);
-    if (pid < 0){
-      printf("no more child, P1 loops\n");
-      while(1);
-    }
-    printf("P1 buried a ZOMBIE child %d\n", pid);
-  }
-}
-int main()
-{ 
-   int i; 
-   char line[128]; 
-   u8 kbdstatus, key, scode;
-   KBD *kp = &kbd;
-   color = WHITE;
-   row = col = 0; 
-
-   fbuf_init();
-   //uart_init();
-   kprintf("Welcome to Wanix in ARM\n");
-   kbd_init();
-   //pipe_init();
-   //kpipe = create_pipe();
-   
-   /* enable SIC interrupts */
+  fbuf_init();
+  kbd_init();
+  // buffer_init();
+  // pipe_init();
+  
+   printf("Welcome to the MT Multitasking System\n");
+      /* enable SIC interrupts */
    VIC_INTENABLE |= (1<<31); // SIC to VIC's IRQ31
    /* enable KBD IRQ */
    VIC_INTENABLE |= (1<<4);  // timer0,1 at bit4 
    SIC_INTENABLE = (1<<3); // KBD int=bit3 on SIC
    SIC_ENSET = (1<<3);  // KBD int=3 on SIC
-   timer_init();
-   tp[0] = &timer[0];
-   timer_start(0);
-   *(kp->base+KCNTL) = 0x12;
+   init();    // initialize system; create and run P0
+  //kfork(producer(),1);
+  //kfork(consumer(),1);
+  kfork(INIT,1);
 
-   init();
-   //kfork(INIT());
-
-  /*for produce/consumer */
-  kprintf("P0 kforks tasks\n");
-  //buffer_init();
-  //kfork((int)pipe_writer, 1);
-  //kfork((int)pipe_reader, 1);
-  //kfork((int)producer, 2);
-  //kfork((int)consumer, 2);
-  //kfork((int)producer, 3);
-  //kfork((int)consumer, 3);
-
-
-  //printf("Enter line from UART0 to activate producer/consumer tasks\n");
-  unlock();
-
-   printQ(readyQueue);
-   kfork();   // kfork P1 into readyQueue  
-
-   unlock();
+   printList("readyQueue", readyQueue);
    while(1){
-     if (readyQueue)
-        tswitch();
+     printf("P0 switch process\n");
+     while(!readyQueue);
+     tswitch();
    }
 }
 
 /*********** scheduler *************/
 int scheduler()
 { 
- // printf("proc %d in scheduler()\n", running->pid);
+  printf("proc %d in scheduler()\n", running->pid);
   if (running->status == READY)
      enqueue(&readyQueue, running);
   printList("readyQueue", readyQueue);
   running = dequeue(&readyQueue);
-  //printf("next running = %d\n", running->pid);  
+  printf("next running = %d\n", running->pid);  
 }
 
 

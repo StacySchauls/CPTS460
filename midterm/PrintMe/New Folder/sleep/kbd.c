@@ -90,7 +90,7 @@ release 'a'   =>   0xF0   0x1C
 
 /* have to press a key to generate interrupt go into this handler */
 
-void kbd_handler_()
+void kbd_handler()
 {
   u8 scode, c;
 
@@ -140,7 +140,7 @@ void kbd_handler_()
 }
 
 //NEW GET C TO PUT TO SLEEP AND SUCH
-int kgetc_(){
+int kgetc(){
   char c;
   KBD *kp = &kbd;
   while(kp->data == 0){
@@ -167,7 +167,7 @@ int kgetc_(){
 
 
 
-void kbd_handler()
+void kbd_handler_()
 {
   u8 scode, c;
 
@@ -215,7 +215,7 @@ void kbd_handler()
   kp->data++; kp->room--;
 }
 
-int kgetc()
+int kgetc_()
 {
   char c;
   KBD *kp = &kbd;
