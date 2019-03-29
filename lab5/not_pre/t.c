@@ -34,6 +34,7 @@ int color;
 #include "wait.c"
 #include "sdc.c"
 #include "yourload.c"
+#include "fork-exec.c"
 
 
 void copy_vectors(void) {
