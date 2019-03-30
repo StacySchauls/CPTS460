@@ -10,6 +10,8 @@ typedef unsigned int    u32;
 
 int ubody(char *name)
 {
+
+  printf("MY NAME IS %s\n", name);
   int pid, ppid;
   char line[64];
   u32 mode,  *up;
@@ -57,7 +59,7 @@ if (strcmp(line, "sleep")==0)
 int umenu()
 {
   uprintf("-------------------------------\n");
-  uprintf("getpid getppid ps chname switch wait sleep wakeup kfork exec\n");
+  uprintf("getpid getppid ps chname switch wait sleep wakeup kfork exec exit\n");
   uprintf("-------------------------------\n");
 }
 
