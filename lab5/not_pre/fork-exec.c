@@ -36,3 +36,40 @@ printf("here3\n");
 }
 
 
+
+int exec(char *cmdline){
+    int i, upa, usp;
+    char *cp, kline[128], file[32], filename[32];
+    PROC *p = running;
+    strcpy(kline, cmdline);
+    //get first token of kline as filename
+    cp = kline; i = 0;
+    while(*cp != ' '){
+        filename[i] = *cp;
+        i++; cp++;
+    }
+    filename[i] = 0;
+    file[0] = 0;
+    //if filename relative
+    if(filename[0] != '/'){
+        strcpy(file, "/bin/"); //prefix with /bin/
+    }
+    strcat(file, filename);
+    upa = p->pgdir[2048] & 0xFFFF0000; //PA of umode image
+    if(!loadelf(file, p)){
+        return -1;
+    }
+
+    //copy cmdline to high end of Ustack in Umode image
+    usp = upa + 0x100000 - 128;
+    strcpy((char *) usp, kline);
+    p->usp = ((int *)VA(0x100000 - 128));
+    //fix syscall fram in kstack to return to VA=0 of new image
+    for(i = 2; i<14; i++){ //cleatr umode regs r1-r12
+        p->kstack[SSIZE - i] - 0;
+    }
+    p->kstack[SSIZE - 1] = (int)VA(0);
+    return (int)p->usp; //will replace saved r0 in the kstack
+}
+
+
