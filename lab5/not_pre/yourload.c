@@ -22,10 +22,11 @@ int search(INODE *ip, char *name)
               c = dp->name[dp->name_len];  // save last byte
 
               dp->name[dp->name_len] = 0;   
-	      printf("%s ", dp->name); 
+	            printf("%s ", dp->name); 
+              printf("comparing %s to %s\n", dp->name, name);
  
               if ( strcmp(dp->name, name) == 0 ){
-		printf("found %s\n", name); 
+		          printf("We found %s\n", name); 
                 return(dp->inode);
               }
               dp->name[dp->name_len] = c; // restore that last byte

@@ -49,13 +49,15 @@ if (strcmp(line, "sleep")==0)
        uexit();
         if (strcmp(line, "kfork")==0)
        do_kfork();
+       if (strcmp(line, "exec") == 0)
+        do_exec();
   }
 }
 
 int umenu()
 {
   uprintf("-------------------------------\n");
-  uprintf("getpid getppid ps chname switch wait sleep wakeup kfork \n");
+  uprintf("getpid getppid ps chname switch wait sleep wakeup kfork exec\n");
   uprintf("-------------------------------\n");
 }
 
@@ -76,6 +78,14 @@ int do_kfork()
       printf("proc %d kforked a child = %d\n", ugetpid(), child); 
    }
    return child;
+}
+
+int do_exec(){
+  char s[32];
+    uprintf("input a command string : ");
+  ugetline(s);
+  printf("\n");
+  return syscall(16,s,0,0);
 }
 
 int ukfork()
