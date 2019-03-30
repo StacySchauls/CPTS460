@@ -1,3 +1,6 @@
+
+#include "loadelf.c"
+
 int fork(){
     printf("In the new fork now :) \n");
     int i;
