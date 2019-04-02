@@ -1,0 +1,241 @@
+long my_lseek(int fd, long position)
+{
+    OFT *oftp;
+    MINODE *mip;
+    int original;
+
+    if (fd > 9 || fd < 0)
+    {
+        printf("ERROR: FILE DESCRIPTOR OUT OF RANGE\n");
+        return -1;
+    }
+    if(running->fd[fd] == NULL)
+    {
+        printf("ERROR: FILE DESCRIPTOR NOT FOUND\n");
+        return -1;
+    }
+    oftp = running->fd[fd];
+    original = oftp->offset;
+    if(position < 0)
+    {
+        oftp->offset = 0;
+        return original;
+    }
+    if(position > (oftp->inodeptr->INODE.i_size - 1))
+    {
+        oftp->offset = oftp->inodeptr->INODE.i_size - 1;
+        return original;
+    }
+    oftp->offset = position;
+    return original;
+}
+
+
+int read_file(char *pathname)
+{
+    char cFile[256], cBytes[256], buf[BLKSIZE];
+    int file, nbytes, i;
+    
+    if(split_paths(pathname, cFile, cBytes) <= 0) {return -1;}
+
+    if(cFile[0] == 0)
+    {
+        printf("ERROR: NO FILE GIVEN\n");
+        return -1;
+    }
+    if(cBytes[0] == 0)
+    {
+        printf("ERROR: NO BYTES GIVEN\n");
+        return -1;
+    }
+    file = atoi(cFile);
+    nbytes = atoi(cBytes);
+    
+    if (file < 0 || file > 9)
+    {
+        printf("ERROR: INVALID FILE DESCRIPTOR\n");
+        return -1;
+    }
+    if (running->fd[file] == NULL)
+    {
+        printf("ERROR: FILE NOT OPEN\n");
+        return -1;
+    }
+    if(running->fd[file]->mode != 0 && running->fd[file]->mode != 2)
+    {
+        printf("ERROR: NO READ ACCESS\n");
+        return -1;
+    }
+    return myread(file, buf, nbytes);
+}
+
+int myread(int fd, char *buf, int nbytes)
+{
+    int avail, lblk, lblk2, lblk3, blk, startByte, remain, count = 0;
+    char *cq, *cp, readBuf[BLKSIZE];
+    int tempBuf1[256], tempBuf2[256];
+    int size = running->fd[fd]->inodeptr->INODE.i_size;
+    avail = size - running->fd[fd]->offset;
+    cq = buf;
+
+    while (nbytes && avail)
+    {
+        lblk = running->fd[fd]->offset / BLKSIZE;
+        startByte = running->fd[fd]->offset % BLKSIZE;
+
+        if(lblk <12)
+        {
+            blk = running->fd[fd]->inodeptr->INODE.i_block[lblk];
+        }
+        else if (lblk >= 12 && lblk < 256 + 12)
+        {
+           get_block(running->fd[fd]->inodeptr->dev, running->fd[fd]->inodeptr->INODE.i_block[12], (char*)tempBuf1);
+           blk = tempBuf1[lblk-12];
+        }
+        else
+        {
+            get_block(running->fd[fd]->inodeptr->dev, running->fd[fd]->inodeptr->INODE.i_block[13], (char*)tempBuf1);
+            lblk2 = (lblk - (256+12)) / 256;
+            lblk3 = (lblk - (256+12)) % 256;
+            get_block(running->fd[fd]->inodeptr->dev, tempBuf1[lblk2], (char*)tempBuf2);
+            blk = tempBuf2[lblk3];
+        }
+        get_block(running->fd[fd]->inodeptr->dev, blk, readBuf);
+        cp = readBuf + startByte;
+        remain = BLKSIZE - startByte;
+        
+        if(avail >= BLKSIZE && remain == BLKSIZE && nbytes >= BLKSIZE) //Copy the entire block
+        {
+            strncpy(cq, cp, BLKSIZE);
+            running->fd[fd]->offset += BLKSIZE;
+            count += BLKSIZE; avail -= BLKSIZE; nbytes -= BLKSIZE; remain -= BLKSIZE;
+        }
+        else if (nbytes <= avail && nbytes <= remain) //Copy nbytes
+        {
+            strncpy(cq, cp, nbytes);
+            running->fd[fd]->offset += nbytes;
+            count += nbytes; avail -= nbytes; nbytes -= nbytes; remain -= nbytes;
+        }
+        else if (remain <= avail && remain <= nbytes) //Copy remain
+        {
+            strncpy(cq, cp, remain);
+            running->fd[fd]->offset += remain;
+            count += remain; avail -= remain; nbytes -= remain; remain -= remain;
+        }
+        else //Copy avail
+        {
+            strncpy(cq, cp, avail);
+            running->fd[fd]->offset += avail;
+            count += avail; avail -= avail; nbytes -= avail; remain -= avail;
+        }
+    }
+    printf("******myread: read %d chars from file %d******\n", count, fd);
+    return count;
+}
+
+int cat(char *pathname)
+{
+    char mybuf[1024], strFile[256];
+    int fd, n = 0;
+    
+    strcat(pathname, " 0");
+    fd = open_file(pathname);
+    if(fd < 0 || fd > 9) { return -1; }
+    while( n = myread(fd, mybuf, 1024))
+    {
+        mybuf[n] = 0;
+        printf("%s", mybuf);
+    }
+    snprintf(strFile, 10, "%d", fd);
+    close_file(strFile);
+    return 1;
+}
+
+
+
+
+int cp_file(char *pathname)
+{
+    int fd, gd, n;
+    char buf[BLKSIZE], src[256], dest[256], origDest[256];
+    memset(src, 0, 256);
+    memset(dest, 0, 256);
+    split_paths(pathname, src, dest);
+    if(dest[0] == 0) {return -1;}
+    strncpy(origDest, dest, 256);
+    
+    strcat(src, " 0");
+    fd = open_file(src);
+    if(fd < 0 || fd > 9){ return -1;}
+    sprintf(src, "%d", fd);
+    strcat(dest, " 1");
+    gd = open_file(dest);
+    if(gd < 0 || gd > 9)
+    {
+        if(fd == -1) {close_file(src); return -1;}
+        //Create file
+        if(creat_file(origDest) <= 0) {close_file(src); return -1;}
+        strcat(dest, " 1");
+        gd = open_file(dest);
+        if(gd < 0 || gd > 9) {close_file(src); return -1;}
+    }
+    while(n = myread(fd, buf, 1024))
+    {
+        mywrite(gd, buf, n);
+    }
+    sprintf(src, "%d", fd);
+    close_file(src);
+    sprintf(dest, "%d", gd);
+    close_file(dest);
+   return 1; 
+}
+
+int mv_file(char *pathname)
+{
+    int ino, ino2, dev1;
+    char src[256], dest[256], dirname[256], tempPathname[512];
+    MINODE *sip, *dip;
+    
+    strcpy(tempPathname, pathname);
+    split_paths(tempPathname, src, dest);
+    myDirname(dest, dirname);
+    
+    if(src[0] == '/') {dev1 = root->dev;}
+    else {dev1 = running->cwd->dev;}
+    ino = getino(dev1, src);
+    if(ino <= 0)
+    {
+        printf("ERROR: SOURCE NOT FOUND\n");
+        return -1;
+    }
+    sip = iget(dev1, ino);
+    if(dest[0] == '/') {dev1 = root->dev;}
+    else {dev1 = running->cwd->dev;}
+    if(dirname[0] == 0) {ino2 = running->cwd->ino;}
+    else if(strcmp(dirname, "/") == 0) {ino2 = root->ino;}
+    else { ino2 = getino(dev1, dirname); }
+    if(ino2 <= 0)
+    {
+        printf("ERROR: DEST DIRECTORY NOT FOUND\n");
+        iput(sip->dev, sip);
+        return -1;
+    }
+    dip = iget(dev1, ino2);
+    if(sip->dev == dip->dev) //Same dev
+    {
+        if(link(pathname) <= 0) 
+        {
+            iput(sip->dev, sip); iput(dip->dev, dip);
+            return -1;
+        }
+        unlink(src);
+        iput(sip->dev, sip);
+        iput(dip->dev, dip);
+        return 1;
+    }
+    cp_file(pathname);
+    unlink(src);
+    iput(sip->dev, sip);
+    iput(dip->dev, dip);
+    return 1;
+}
