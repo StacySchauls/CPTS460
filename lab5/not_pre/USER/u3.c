@@ -2,5 +2,5 @@
 
 main()
 {
-  ubody("three");
+  ubody("u3");
 }

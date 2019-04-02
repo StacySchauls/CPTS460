@@ -2,8 +2,8 @@
 
 int fork(){
     printf("In the new fork now :) \n");
-    int i;
-    char *PA, *CA;
+    int i, *pgtable;
+    int *PA, *CA;
     PROC *p = dequeue(&freeList);
     printf("here1\n");
     if(p==0){
@@ -17,14 +17,19 @@ int fork(){
     p->status = READY;
     p->priority = 1;
     printf("here2\n");
-    PA = running->pgdir[2048] & 0xFFFF0000;  //parent Umode PA
-    CA =  p->pgdir[2048] & 0xFFFF0000;       //child Umode PA
-    printf("her32\n");
-    memcpy(CA,PA, 0x10000);    //copy 1MB Umode image
+    PA = running->pgdir; //parent Umode PA
+    CA =  p->pgdir;      //child Umode PA
+    printf("her3\n");
+    memcpy((char* )CA,(char *)PA, 0x10000);    //copy 1MB Umode image
     printf("her4\n");
     for(i = 1; i <=14; i++){
+        printf("here");
         p->kstack[SSIZE - i] = running->kstack[SSIZE - i];
     }
+    for(i = 15; i<=28; i++){
+        p->kstack[SSIZE-i] = 0;
+    }
+
     p->kstack[SSIZE - 14] = 0;      //child return pid = 0
     p->kstack[SSIZE - 15] = (int)goUmode;         //child resumes to goUmode
     printf("here3\n");

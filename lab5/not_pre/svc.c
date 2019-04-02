@@ -82,7 +82,7 @@ int svc_handler(int a, int b, int c, int d)
     case 13: r = kwakeup(b); break;
     case 11: r = kexit(b); break;
     case 16: r = exec(b); break;
-    case 15: r =   kfork("u1"); break;  //fork(); printf("returned\n"); break;//kfork("u1");
+    case 15: r =  kfork(b); break;  //printf("returned\n"); break;//kfork("u1");
      case 90: r = kgetc() & 0x7F;    break;
      case 91: r = kputc(b);          break;
      case 92: r = kgetPA();          break;

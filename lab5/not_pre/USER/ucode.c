@@ -50,7 +50,7 @@ if (strcmp(line, "sleep")==0)
        if (strcmp(line, "exit")==0)
        uexit();
         if (strcmp(line, "kfork")==0)
-       do_kfork();
+       do_kfork(name);
        if (strcmp(line, "exec") == 0)
         do_exec();
   }
@@ -71,12 +71,13 @@ int getpid()
 }    
 
 
-int do_kfork()
+int do_kfork(char *b)
 {
-   int child = syscall(15,0,0,0);
+   int child = syscall(15,b,0,0);
    if (child < 0)
       printf("kfork failed\n");
    else{
+     printf("forking image: %s\n",b);
       printf("proc %d kforked a child = %d\n", ugetpid(), child); 
    }
    return child;

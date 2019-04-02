@@ -24,7 +24,7 @@ int search(INODE *ip, char *name)
               dp->name[dp->name_len] = 0;   
 	            printf("%s ", dp->name); 
               printf("comparing %s to %s\n", dp->name, name);
- 
+              
               if ( strcmp(dp->name, name) == 0 ){
 		          printf("We found %s\n", name); 
                 return(dp->inode);
