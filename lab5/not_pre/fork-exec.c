@@ -1,11 +1,11 @@
 
 
 int fork(){
-    printf("In the new fork now :) \n");
+   // printf("In the new fork now :) \n");
     int i, *ptable,pentry;
     int *PA, *CA;
     PROC *p = dequeue(&freeList);
-    printf("here1\n");
+    //printf("here1\n");
     if(p==0){
         printf("fork failed");
         return -1;
@@ -36,18 +36,18 @@ int fork(){
 
 
     p->ppid = running->pid;
-    printf("new id should be %d\n", p->pid);
+    //printf("new id should be %d\n", p->pid);
     p->parent = running;
     p->status = READY;
     p->priority = 1;
-    printf("here2\n");
+    //printf("here2\n");
     PA = running->pgdir; //parent Umode PA
     CA =  p->pgdir;      //child Umode PA
-    printf("her3\n");
+    //printf("her3\n");
     memcpy((char* )CA,(char *)PA, 0x10000);    //copy 1MB Umode image
-    printf("her4\n");
+    //printf("her4\n");
     for(i = 1; i <=14; i++){
-        printf("here");
+      //  printf("here");
         p->kstack[SSIZE - i] = running->kstack[SSIZE - i];
     }
     for(i = 15; i<=28; i++){
@@ -56,7 +56,7 @@ int fork(){
 
     p->kstack[SSIZE - 14] = 0;      //child return pid = 0
     p->kstack[SSIZE - 15] = (int)goUmode;         //child resumes to goUmode
-    printf("here3\n");
+    //printf("here3\n");
 
     p->ksp = &(p->kstack[SSIZE-28]);
     p->usp = running->usp;
