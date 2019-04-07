@@ -85,7 +85,14 @@ int fileOpen(char *pathname);
 int fileClose(char *path);
 int fileWrite(char *pathname);
 int myWrite(int fd, char *buf, int nbytes);
+int cp_file(char *pathname);
 
+//Added during 460
 
-static int (*fptr[])(char*) = {(int (*)())do_ls,  cd, do_pwd,  make_dir, my_chmod, creat_file, my_rmdir, my_link,my_unlink, my_symlink, touch,fileOpen,fileClose,fileWrite, quit};
-static char *cmnds[] = {"ls", "cd", "pwd",  "mkdir", "chmod",  "creat", "rmdir", "link", "unlink", "symlink", "touch", "open","close","write", "quit"};
+int read_file(char *pathname);
+int myread(int fd, char *buf, int nbytes);
+int cat(char *pathname);
+int do_cat(char *pathname);
+
+static int (*fptr[])(char*) = {(int (*)())do_ls,  cd, do_pwd,  make_dir, my_chmod, creat_file, my_rmdir, my_link,my_unlink, my_symlink, touch,fileOpen,fileClose,read_file,fileWrite, do_cat,cp_file, quit};
+static char *cmnds[] = {"ls", "cd", "pwd",  "mkdir", "chmod",  "creat", "rmdir", "link", "unlink", "symlink", "touch", "open","close", "read","write", "cat","cp", "quit"};

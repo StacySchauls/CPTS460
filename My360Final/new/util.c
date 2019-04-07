@@ -30,7 +30,7 @@ int menu(char* pathanme)
 
   printf("********* Level 2 Commands************\n");
 
-  printf("open write close \n");
+  printf("open write close read cat\n");
 
   printf("******************************************\n");
 }
@@ -1966,7 +1966,8 @@ int fileWrite(char *pathname)
 
   printf("What would you like to write?\n");
   fgets(writeMe, BLKSIZE, stdin);
-  writeMe[strlen(writeMe) -1] = 0;
+  writeMe[strlen(writeMe) -1] = '\0';
+  printf("writing %s\n", writeMe);
   if(writeMe[0] == 0)
   {
     return 0;
@@ -1977,10 +1978,14 @@ int fileWrite(char *pathname)
 int myWrite(int fd, char *buf, int nbytes)
 {
   int count, lblk, start, blk, dblk, remain;
-  int ibuf[256], dbuf[256];
-  char writeBuf[BLKSIZE], *cp, *cq;
+  int dbuf[256] = {0};
+  char ibuf[BLKSIZE] = {0};
+  char writeBuf[BLKSIZE] = {0}, *cp;
+  int blk12arr, blk13arr, doubleblk;
+  char *cq = buf;
   count = 0;
-  while(nbytes)
+  MINODE *mip = running->fd[fd]->inodeptr;
+  while(nbytes > 0)
   {
     //comoute logical block
     lblk = running->fd[fd]->offset / BLKSIZE;
@@ -1989,14 +1994,41 @@ int myWrite(int fd, char *buf, int nbytes)
     //convert logical block ot physical block
     if(lblk < 12 ) //direct blocks
     {
-      blk = running->fd[fd]->inodeptr->INODE.i_block[lblk];
+      if(mip->INODE.i_block[lblk] == 0){
+        mip->INODE.i_block[lblk] = balloc(mip->dev);
+      }
+      blk = mip->INODE.i_block[lblk];
     }
     else if(12 <= lblk < 12 + 256) //indirect blocks
     {
+      if(mip->INODE.i_block[12] == 0){
+        blk12arr = mip->INODE.i_block[12] = balloc(mip->dev);
+        if(blk12arr == 0 ) return 0;
+
+        get_block(mip->dev, mip->INODE.i_block[12], ibuf);
+        int *ip = (int *)ibuf, p=0;
+        for(p =0; p<(BLKSIZE/sizeof(int)); p++){
+          ip[p] = 0;
+        }
+        put_block(mip->dev, mip->INODE.i_block[12],ibuf);
+        mip->INODE.i_blocks++;
+      }
+      int int_buf[BLKSIZE/sizeof(int)] =  {0};
+      get_block(mip->dev, mip->INODE.i_block[12], (char*)int_buf);
+      blk = int_buf[lblk - 12];
+
+      if(blk == 0){
+        //allocate disk block
+        blk = int_buf[lblk - 12] = balloc(mip->dev);
+        mip->INODE.i_blocks++;
+        put_block(mip->dev, mip->INODE.i_block[12], (char*)int_buf);
+        }
+      /*
       //load the block 12 inot ibuf
       memset(ibuf,0,256);
       get_block(running->fd[fd]->inodeptr->dev, running->fd[fd]->inodeptr->INODE.i_block[12], (char *)ibuf);
       blk = ibuf[lblk - 12];
+      */
     }
     else //double indirect blocks
     {
@@ -2015,11 +2047,13 @@ int myWrite(int fd, char *buf, int nbytes)
     get_block(running->fd[fd]->inodeptr->dev, blk, writeBuf);
     //init the cp and the remaining
     cp = writeBuf + start;
+    
     remain = BLKSIZE - start;
 
 
     if(remain < nbytes) //copy remain
     {
+      printf("%s\n", cp);
       strncpy(cp, cq, remain); //copies all at once, as opposed to one at a time.
       count += remain;
       nbytes -= remain;
@@ -2034,6 +2068,7 @@ int myWrite(int fd, char *buf, int nbytes)
     else //copy nbytes
     {
       strncpy(cp, cq, nbytes);
+      printf("%s\n", cp);
       remain -= nbytes;
       count += nbytes;
       running->fd[fd]->offset += nbytes;
@@ -2049,4 +2084,198 @@ int myWrite(int fd, char *buf, int nbytes)
     running->fd[fd]->inodeptr->dirty = 1;
     printf("Wrote %d chars into file.\n", count);
   }
+}
+/***************** ADDED DURING 460 ************************/
+int read_file(char *pathname)
+{
+    char cFile[256], cBytes[256], buf[BLKSIZE];
+    int file, nbytes, i;
+    
+    if(split_paths(pathname, cFile, cBytes) <= 0) {return -1;}
+
+    if(cFile[0] == 0)
+    {
+        printf("ERROR: NO FILE GIVEN\n");
+        return -1;
+    }
+    if(cBytes[0] == 0)
+    {
+        printf("ERROR: NO BYTES GIVEN\n");
+        return -1;
+    }
+    file = atoi(cFile);
+    nbytes = atoi(cBytes);
+    
+    if (file < 0 || file > 9)
+    {
+        printf("ERROR: INVALID FILE DESCRIPTOR\n");
+        return -1;
+    }
+    if (running->fd[file] == NULL)
+    {
+        printf("ERROR: FILE NOT OPEN\n");
+        return -1;
+    }
+    if(running->fd[file]->mode != 0 && running->fd[file]->mode != 2)
+    {
+        printf("ERROR: NO READ ACCESS\n");
+        return -1;
+    }
+    return myread(file, buf, nbytes);
+}
+
+int myread(int fd, char *buf, int nbytes)
+{
+    int avail, lblk, lblk2, lblk3, blk, startByte, remain, count = 0;
+    char *cq, *cp, readBuf[BLKSIZE];
+    int tempBuf1[256], tempBuf2[256];
+    int size = running->fd[fd]->inodeptr->INODE.i_size;
+    avail = size - running->fd[fd]->offset;
+    cq = buf;
+
+    while (nbytes && avail)
+    {
+        lblk = running->fd[fd]->offset / BLKSIZE;
+        startByte = running->fd[fd]->offset % BLKSIZE;
+
+        if(lblk <12)
+        {
+            blk = running->fd[fd]->inodeptr->INODE.i_block[lblk];
+        }
+        else if (lblk >= 12 && lblk < 256 + 12)
+        {
+           get_block(running->fd[fd]->inodeptr->dev, running->fd[fd]->inodeptr->INODE.i_block[12], (char*)tempBuf1);
+           blk = tempBuf1[lblk-12];
+        }
+        else
+        {
+            get_block(running->fd[fd]->inodeptr->dev, running->fd[fd]->inodeptr->INODE.i_block[13], (char*)tempBuf1);
+            lblk2 = (lblk - (256+12)) / 256;
+            lblk3 = (lblk - (256+12)) % 256;
+            get_block(running->fd[fd]->inodeptr->dev, tempBuf1[lblk2], (char*)tempBuf2);
+            blk = tempBuf2[lblk3];
+        }
+        get_block(running->fd[fd]->inodeptr->dev, blk, readBuf);
+        cp = readBuf + startByte;
+        remain = BLKSIZE - startByte;
+        
+        if(avail >= BLKSIZE && remain == BLKSIZE && nbytes >= BLKSIZE) //Copy the entire block
+        {
+            strncpy(cq, cp, BLKSIZE);
+            running->fd[fd]->offset += BLKSIZE;
+            count += BLKSIZE; avail -= BLKSIZE; nbytes -= BLKSIZE; remain -= BLKSIZE;
+        }
+        else if (nbytes <= avail && nbytes <= remain) //Copy nbytes
+        {
+            strncpy(cq, cp, nbytes);
+            running->fd[fd]->offset += nbytes;
+            count += nbytes; avail -= nbytes; nbytes -= nbytes; remain -= nbytes;
+        }
+        else if (remain <= avail && remain <= nbytes) //Copy remain
+        {
+            strncpy(cq, cp, remain);
+            running->fd[fd]->offset += remain;
+            count += remain; avail -= remain; nbytes -= remain; remain -= remain;
+        }
+        else //Copy avail
+        {
+            strncpy(cq, cp, avail);
+            running->fd[fd]->offset += avail;
+            count += avail; avail -= avail; nbytes -= avail; remain -= avail;
+        }
+    }
+    //printf("len of cq is %d len of cp is %s\n", strlen(cq), cp);
+    printf("******myread: read %d chars from file %d******\n", count, fd);
+    return count;
+}
+
+
+
+int do_cat(char *pathname)
+{
+ 
+    char mybuf[BLKSIZE];
+    int fd, n = 0;
+    
+    strcat(pathname, " R");
+    fd = fileOpen(pathname);
+
+    if(fd < 0 || fd > 9) { return -1; }
+    
+    while( n = myread(fd, mybuf, BLKSIZE))
+    {
+       char *cp = mybuf; //char ptr        
+        while((*cp != 0)){
+          //print new line
+          if ( *cp == '\\' && *(cp + 1) == 'n'){
+            printf("\n");
+            cp += 2;
+          }else{
+            putchar(*cp);
+            cp++;
+          }
+          
+          
+      }
+    }
+    fileClose(pathname);
+    printf("\n");
+}
+
+
+int cp_file(char *pathname)
+{
+    int fd, gd, n;
+    char buf[BLKSIZE], src[256], dest[256], origDest[256];
+    memset(src, 0, 256);
+    memset(dest, 0, 256);
+    split_paths(pathname, src, dest);
+    if(dest[0] == 0) {return -1;}
+    strncpy(origDest, dest, 256);
+    
+    strcat(src, " 0");
+    fd = fileOpen(src);
+
+    if(fd < 0 || fd > 9){ return -1;}
+    sprintf(src, "%d", fd);
+    printf("%s\n", src);
+    strcat(dest, " RW");
+    gd = fileOpen(dest);
+    if(gd < 0 || gd > 9)
+    {
+        if(fd == -1) {fileClose(src); return -1;}
+        //Create file
+        if(creat_file(origDest) <= 0) {fileClose(src); return -1;}
+        strcat(dest, " 1");
+        gd = fileOpen(dest);
+        if(gd < 0 || gd > 9) {fileClose(src); return -1;}
+    }
+    while(n = myread(fd, buf, 1024))
+    {
+        myWrite(gd, buf, n);
+    }
+    sprintf(src, "%d", fd);
+    fileClose(src);
+    sprintf(dest, "%d", gd);
+    fileClose(dest);
+   return 1; 
+}
+
+
+int cat(char *pathname)
+{
+    char mybuf[1024]; //strFile[256];
+    int fd, n = 0;
+    
+    strcat(pathname, " R");
+    fd = fileOpen(pathname);
+    if(fd < 0 || fd > 9) { return -1; }
+    while( n = myread(fd, mybuf, 1024))
+    {
+        mybuf[n] = 0;
+        printf("%s", mybuf);
+    }
+    //snprintf(strFile, 10, "%d", fd);
+    fileClose(pathname);
+    return 1;
 }

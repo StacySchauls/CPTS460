@@ -28,14 +28,17 @@ int main(int argc, char *argv[])
             strcat(pathname, parameter);
         }
         //printf("Pathname = %s\n", pathname);
-        for(i = 0; i < 15; i++)
+        for(i = 0; i < 18; i++)
         {
             //look for the command in our list of commands, then run itvia the funciton pointer
-            if(strcmp(cmnds[i], cname) == 0)
-            {
+          
+                if(strcmp(cmnds[i], cname) == 0)
+                {       
                     fptr[i](pathname);
                     continue;
-            }
+                }
+            
+            
 
         }
         putchar(10);
