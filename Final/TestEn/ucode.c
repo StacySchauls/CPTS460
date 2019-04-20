@@ -510,6 +510,41 @@ int eatpath(char *line, char *name[ ])
   return n;
 }
 
+int eatpath(char *line, char *name[ ])  
+{
+  int i, n; char *cp;
+  
+
+  n = 0; 
+  for (i=0; i<16; i++)
+      name[i]=0;
+
+  cp = line;
+  while (*cp != 0){
+       while (*cp == ' ')
+              *cp++ = 0;       
+       if (*cp != 0)
+           name[n++] = cp; 
+       while (*cp != ' ' && *cp != 0)
+	       cp++; 
+       if (*cp != 0)       
+	   *cp = 0;        
+       else
+           break; 
+       cp++;
+  }
+
+  /*
+  for (i=0; i < n; i++){
+      if (name[i]){
+         prints(name[i]); prints("  ");
+      }
+  }
+  prints("\n\r");
+  */
+  return n;
+}
+
 int strcasecmp(char *s1, char *s2)
 {
   char *cp;
@@ -538,4 +573,37 @@ int strcasecmp(char *s1, char *s2)
   }
   //printf("t2=%s\n", t1, t2);
   return strcmp(t1, t2);
+}
+
+
+static char *olds;
+
+char * strtok (char *s, const char *delim)
+{
+  char *token;
+
+  if (s == null)
+    s = olds;
+
+  /* Scan leading delimiters.  */
+  s += strspn (s, delim);
+  if (*s == '\0')
+    {
+      olds = s;
+      return null;
+    }
+
+  /* Find the end of the token.  */
+  token = s;
+  s = strpbrk (token, delim);
+  if (s == null)
+    /* This token finishes the string.  */
+    olds = __rawmemchr (token, '\0');
+  else
+    {
+      /* Terminate the token and make OLDS point past it.  */
+      *s = '\0';
+      olds = s + 1;
+    }
+  return token;
 }
