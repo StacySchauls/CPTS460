@@ -1,89 +1,101 @@
+#include "type.h"
 #include "ucode.c"
 
-char *tty;
+char*tty;
+
 int stdin, stdout, stderr;
-int checkCreds(char user[], char pass[]);
-char uname[64], home[64], program[64];
-int uid, gid;
 
-int main(int argc, char *argv[])
+int tokenize(path, tokens, delim) char* path; char* tokens[]; char delim;
 {
-    char user[64], pass[64];
-    tty = argv[1];
+	int index = 1;
+	tokens[0] = path;
+	while(*path)
+	{
+		if (*path == delim)
+		{
+			*path = 0;
+			tokens[index++] = ++path;
+		} else {
+			path++;
+		}
+	}
+	return index;
+}
 
-    //close stdin stdout, stderr
-    close(0); close(1); close(2);
-    //set new ones
-    stdin = open(tty, O_RDONLY);
-    stdout = open(tty, O_WRONLY);
-    stderr = open(tty, 2);
-
-    settty(tty);
-
-    printf("Welcome to Stacy's login. Opened %s as stdin stdout stderror.\n", tty);
-
-    signal(2,1);
-
-    while(1)
-    {
-        printf("Username: ");
-        gets(user);
-        printf("Password: ");
-        gets(pass);
-
-        if(checkCreds(user, pass) == 1)
-        {
-            printf("Welcome, %s\n", user);
-            chuid(uid, gid);
-            chdir(home);
-            exec(program);
-        }
-
-        printf("Login failed.\n");
-    }
-    exit(1);
-}   
-
-
-int checkCreds(char *user, char* pass)
+main (argc, argv) int argc; char* argv[];
 {
-    int file =  open("/etc/psswd", O_RDONLY);
-    char *token, *dl = ":\n", tmp[64], buffer[1024];
+	char usrname[64], password[64], passbuf[1024];
+	char name[64], home[64], shell[64];
+	int gid, uid;
 
-    if(file == null)
-    {
-        printf("Errorr opening password file\n");
-        return 0;
-    }
+	char* tokens[10];
+	char delim = ':';
+	char* tty = argv[1];
 
-    if(read(file, buffer, 1024) < 0)
-    {
-        printf("Error: cant read password file\n");
-        return 0;
-    }
+	close(0);
+	close(1);
+	close(2);
 
-    token = strtok(buffer, dl);
-    while(token != null)
-    {
-        if(!strcmp(token, user))
-        {
-            token = strtok(null, dl);
+	stdin = open(tty, 0);
+	stdout = open(tty, 1);
+	stderr = open(tty, 2);
 
-            if(!strcmp(token, pass))
-            {
-                uid = atoi(strtok(null, dl));       // grab uid
-                gid = atoi(strtok(null, dl));       // grab gid
-                strcpy(uname, strtok(null, dl));     // grab username
-                strcpy(name, user);
-                strcpy(home, strtok(null, dl));     // grab home directory
-                strcpy(program, strtok(null, dl));  // grab usershell
+	printf("fd's for stdin=%d stdout=%d stderr=%d\n", stdin, stdout, stderr);
 
-                close(file);
-                return 1;
-            }
-        }
-        token = strtok(null, dl);
-    }
-    close(file);
-    return 0;
+	while(1)
+	{
+		STAT s;
+		int size_remain;
+		int passfd = open("/etc/passwd", READ);
+
+		printf("zjaquish login: ");
+		gets(usrname);
+		
+		printf("password: ");
+		gets(password);
+
+		stat("/etc/passwd", &s);
+		size_remain = s.st_size;
+
+		printf("size_remain=%d\n", size_remain);
+
+		while(1)
+		{
+			int i;
+			for (i = 0; i < 1024 && size_remain > 0; i++)
+			{
+				read(passfd, &passbuf[i], 1);
+				size_remain--;
+
+				if (passbuf[i] == '\n') {
+					passbuf[i+1] = '\0';
+					break;
+				}
+			}
+
+			tokenize(passbuf, tokens, ':');
+			if((strcmp(usrname, tokens[0]) == 0 && strcmp(password, tokens[1]) == 0))
+			{
+				gid = atoi(tokens[2]);
+				uid = atoi(tokens[3]);
+				strcpy(name, tokens[4]);
+				strcpy(home, tokens[5]);
+				strcpy(shell, tokens[6]);
+				printf("%s %s %d %d %s %s %s \n", usrname, password, gid, uid, name, home, shell);
+				chdir(home);
+
+				//strcpy(shell, "/bin/");
+				//strcat(shell, tokens[6]);
+
+				exec("/bin/sh");
+			} else {
+				printf("user was %s with pw %s \n", tokens[0], tokens[1]);
+			}
+
+			if (size_remain == 0)
+				break;
+		}
+		close(passfd);
+	}
+	
 }
