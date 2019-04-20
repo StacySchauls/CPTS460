@@ -1,4 +1,4 @@
-#include "type.h"
+
 #include "ucode.c"
 
 char*tty;
@@ -46,9 +46,10 @@ main (argc, argv) int argc; char* argv[];
 	{
 		STAT s;
 		int size_remain;
-		int passfd = open("/etc/passwd", READ);
-
-		printf("zjaquish login: ");
+		int passfd = open("/etc/passwd", O_RDONLY);
+		//chdir("user");
+		//exec("/bin/ls");
+		printf("Stacy's login: ");
 		gets(usrname);
 		
 		printf("password: ");
@@ -81,13 +82,17 @@ main (argc, argv) int argc; char* argv[];
 				strcpy(name, tokens[4]);
 				strcpy(home, tokens[5]);
 				strcpy(shell, tokens[6]);
+				
 				printf("%s %s %d %d %s %s %s \n", usrname, password, gid, uid, name, home, shell);
 				chdir(home);
-
+				pwd();
+				
 				//strcpy(shell, "/bin/");
 				//strcat(shell, tokens[6]);
-
-				exec("/bin/sh");
+				printf("shell is %s\n", shell);
+				shell[strlen(shell) - 1] = 0;
+				exec(shell);
+				signal(2,1);
 			} else {
 				printf("user was %s with pw %s \n", tokens[0], tokens[1]);
 			}
