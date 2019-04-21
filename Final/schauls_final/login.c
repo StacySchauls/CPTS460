@@ -40,6 +40,7 @@ main (argc, argv) int argc; char* argv[];
 	stdout = open(tty, 1);
 	stderr = open(tty, 2);
 
+
 	printf("fd's for stdin=%d stdout=%d stderr=%d\n", stdin, stdout, stderr);
 
 	while(1)
@@ -47,9 +48,8 @@ main (argc, argv) int argc; char* argv[];
 		STAT s;
 		int size_remain;
 		int passfd = open("/etc/passwd", O_RDONLY);
-		//chdir("user");
-		//exec("/bin/ls");
-		printf("Stacy's login: ");
+		prints("Welcome to Stacy's login\n");
+		prints("Username: ");
 		gets(usrname);
 		
 		printf("password: ");
@@ -57,8 +57,6 @@ main (argc, argv) int argc; char* argv[];
 
 		stat("/etc/passwd", &s);
 		size_remain = s.st_size;
-
-		printf("size_remain=%d\n", size_remain);
 
 		while(1)
 		{
@@ -83,18 +81,13 @@ main (argc, argv) int argc; char* argv[];
 				strcpy(home, tokens[5]);
 				strcpy(shell, tokens[6]);
 				
-				printf("%s %s %d %d %s %s %s \n", usrname, password, gid, uid, name, home, shell);
+				//printf("%s %s %d %d %s %s %s \n", usrname, password, gid, uid, name, home, shell);
 				chdir(home);
-				pwd();
-				
-				//strcpy(shell, "/bin/");
-				//strcat(shell, tokens[6]);
-				printf("shell is %s\n", shell);
+				//printf("shell is %s\n", shell);
 				shell[strlen(shell) - 1] = 0;
 				exec(shell);
 				signal(2,1);
-			} else {
-				printf("user was %s with pw %s \n", tokens[0], tokens[1]);
+				break;
 			}
 
 			if (size_remain == 0)
