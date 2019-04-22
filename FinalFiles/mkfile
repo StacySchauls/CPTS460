@@ -1,0 +1,28 @@
+
+HEAD_OBJS= us.o crt0.o uio.o ucode.o ../mtxlib
+IHEAD_OBJS= us.o uio.o ucode.o ../mtxlib
+
+.s.o:
+	${AS} -a $< -o $*.o > $*.map
+
+
+all: head ihead init login sh ls cat cp ps man mkdir rmdir rm link unlink \
+	symlink	touch sync grep more lpr mount umount cdserver cdclient signal \
+	itimer trap divide segcatcher matrix race norace qsort hits kill loop \
+	vfork demandpage sbrk test mp l2u ptable
+
+head:
+	${AS} -o us.o us.s
+	${CC} -c crt0.c
+	${CC} -c uio.c
+	${CC} -c ucode.c
+
+init:  
+	${CC} ${CFLAGS} -c $@.c 
+	${LD} -T ld.script  ${HEAD_OBJS} $@.o -N  -o $@
+	@wc -c $@; mv $@ bin/
+
+login:  
+	${CC} ${CFLAGS} -c $@.c 
+	${LD} -T ld.script  ${HEAD_OBJS} $@.o -N  -o $@
+	@wc -c $@; mv $@ bin/

@@ -1,0 +1,28 @@
+#********************* dump cript: dump partition# **************************
+#!/bin/bash
+
+if [ $# != 2 ]; then echo dump partition# vmware OR qemu; exit; fi
+
+if [ $2 = qemu ]; then
+   VMDISK="/root/vmware/Other/vdisk"
+   UMOUNT="umount"
+   SECTOR=$(../ptable $VMDISK $1)
+   OFFSET=$(expr $SECTOR \* 512)
+   echo sector=$SECTOR offset=$OFFSET
+#   read dummy
+   mount -o loop,offset=$OFFSET $VMDISK /mnt
+fi
+
+if [ $2 = "vmware" ]; then
+   MOUNT="vmware-mount"
+   VMDISK="/root/vmware/Other/Other.vmdk " 
+   UMOUNT="vmware-mount -d"
+   $MOUNT $VMDISK $1 /mnt
+fi
+
+rm /mnt/bin/*
+cp -av bin/* /mnt/bin/
+$UMOUNT /mnt
+
+echo done
+

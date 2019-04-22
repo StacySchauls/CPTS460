@@ -1,0 +1,27 @@
+LDLIB=/usr/lib/gcc/arm-none-eabi/4.9.3/libgcc.a
+
+arm-none-eabi-as -mcpu=arm926ej-s us.s -o us.o
+
+arm-none-eabi-gcc -c -mcpu=arm926ej-s -o $1.o $1.c #2> /dev/null
+
+arm-none-eabi-ld -T u.ld us.o $1.o mtxlib $LDLIB -Ttext=0x80000000 -o $1
+
+for I in 1 2 3 4
+do
+  mount -o loop /dev/loop$I /mnt
+  cp -av $1 /mnt/bin
+  #ls -l /mnt/bin
+  umount /mnt
+done
+rm $1
+rm *.o
+
+
+
+
+
+ 
+
+
+
+

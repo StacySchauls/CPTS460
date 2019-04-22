@@ -1,0 +1,28 @@
+/* A simple ld script */
+
+/* for flat binary ******/
+/*
+OUTPUT_FORMAT("binary")
+OUTPUT_ARCH(i386)
+ENTRY(u_entry)
+SECTIONS
+{
+  . = 0x0;
+  .text : { *(.text) }
+  .data : { *(.data) }
+  .bss  : { *(.bss)  }
+}
+*/
+
+/******** for ELF *******/
+OUTPUT_FORMAT("elf32-i386")
+OUTPUT_ARCH(i386)
+ENTRY(u_entry)
+SECTIONS
+{
+  . = 0x0;
+  .text : { *(.text) }
+  .data : { *(.data) }
+  .bss  : { *(.bss)  }
+}
+

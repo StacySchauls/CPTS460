@@ -1,0 +1,146 @@
+/***********************************************************************
+                      io.c file of MTX
+***********************************************************************/
+/* #include "uinclude.h" */
+
+typedef unsigned char  u8;
+typedef unsigned short u16;
+typedef unsigned long  u32;
+
+char *ctable = "0123456789ABCDEF";
+
+void align(u32 x)
+{
+  int count;
+  count = 6;
+  if (x==0) 
+     count = 5;
+  while (x){
+    count--;
+    x = (u32)(x/10);
+  }
+
+  while(count){
+    putc(' ');
+    count--;
+  }
+}
+
+int fprintc(int fd, char c)
+{
+  return write(fd, &c, 1);
+}
+
+void fprints(int fd, char *s)
+{
+   while (*s){
+     fprintc(fd, *s);
+     s++;
+   }
+}
+
+void frpi(int fd, int x)
+{
+   char c;
+   if (x==0) return;
+   c = ctable[x%10];
+   frpi(fd, (int)x/10);
+   fprintc(fd, c);
+}
+  
+void fprinti(int fd, int x)
+{
+    if (x==0){
+       fprints(fd, "0 ");
+       return;
+    }
+    if (x < 0){
+       fprintc(fd,'-');
+       x = -x;
+    }
+    frpi(fd, (int)x);
+    fprintc(fd, ' ');
+}
+
+void frpu(int fd, u32 x)
+{
+   char c;
+   if (x==0) return;
+   c = ctable[x%10];
+   frpi(fd, (u32)x/10);
+   fprintc(fd, c);
+}
+
+void fprintu(int fd, u32 x)
+{
+    if (x==0){
+       fprints(fd, "0 ");
+       return;
+    }
+    frpu(fd, (u32)x);
+    fprintc(fd, ' ');
+}
+
+void frpx(int fd, u32 x)
+{
+   char c;
+   if (x==0) return;
+   c = ctable[x%16];
+   frpx(fd, (u32)x/16);
+   fprintc(fd, c);
+}
+
+void fprintx(int fd, u32 x)
+{  
+   fprints(fd, "0x");
+   if (x==0){
+      fprints(fd, "0 ");
+      return;
+   }
+   frpx(fd, (u32)x);
+   fprintc(fd, ' ');
+}
+
+int prints(char *s)
+{
+   fprints(1, s);
+}
+
+int printf(char *fmt)
+{
+  return fprintf(1,&fmt);
+}
+
+int print2f(char *fmt)
+{
+  return fprintf(2,&fmt);
+}
+
+int fprintf(int fd, int *fmt)
+{
+  char *cp;
+  int  *ip;
+ 
+  cp = (char *)fmt;
+  ip = (int *)&fmt + 1;
+
+  while (*cp){
+    if (*cp != '%'){
+      fprintc(fd, (char )*cp);
+      if (*cp=='\n')
+	fprintc(fd, '\r');
+      cp++;
+      continue;
+    }
+    cp++;
+    switch(*cp){
+       case 'd' : fprinti(fd, *ip);           break;
+       case 'u' : fprintu(fd, *ip);           break;
+       case 'x' : fprintx(fd, *ip);           break;
+       case 's' : fprints(fd, (char *)*ip);   break;
+       case 'c' : fprintc(fd, (char  )*ip);   break;
+    }
+    cp++; ip++;
+  }
+  return 1;
+}

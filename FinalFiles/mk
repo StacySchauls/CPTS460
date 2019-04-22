@@ -1,0 +1,6 @@
+for NAME in cat cp grep hits init itimer kill ls link login loop lpr man \
+matrix mkdir more norace ps qsort race rm rmdir sh signal symlink sync touch \
+umount unlink
+do
+  mku $NAME
+done

@@ -1,0 +1,30 @@
+		.globl	u_entry, syscall, vfork
+                .extern mexit
+	
+	        .text	
+#		.include "const.h"
+	        .org 0
+
+
+               .code32
+u_entry:
+ 	        call	main0
+                pushl  $0
+	        call   mexit
+	
+# int syscall(a,b,c,d): put a,b,c,d into ax,bx,cx,dx ; int0x80
+syscall:
+	     int     $0x80
+	     ret
+
+# GCC apparently uses pushal/popal in function calls, which pops esp to its
+# old value prior to a function call. In vfork(), parent and child share the
+# same code but each must have its own ustack. To ensure differnet esp's, we
+# have to implement vfork() in assembly.
+
+vfork:
+	pushl $13
+	call  syscall
+	addl  $4,%esp
+	ret
+	
