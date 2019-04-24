@@ -1,4 +1,5 @@
 #include "ucode.c"
+#include "strings.h"
 void mutilpip(char* line)
 {
 	if (!line || (line[0] == 0) || (strcmp(line, "") == 0))
@@ -17,7 +18,7 @@ void mutilpip(char* line)
 
 
 	if (!tail || (strcmp(tail, "") == 0))
-		execute_command(head);
+		exec(head);
 
 
 
@@ -29,7 +30,7 @@ void mutilpip(char* line)
 				close(pd[0]);
 				close(1);
 				dup(pd[1]);
-				execute_command(head);
+				exec(head);
 			}
 			else {
 				pid = wait(&status);

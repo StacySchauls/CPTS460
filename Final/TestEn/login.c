@@ -1,106 +1,133 @@
-
 #include "ucode.c"
+/* ALGORITH FOR LOGOUT
 
-char*tty;
 
-int stdin, stdout, stderr;
+  upon entry, the first argument, argv[0] = login, argc[1] = /dev/ttyX
 
-int tokenize(path, tokens, delim) char* path; char* tokens[]; char delim;
+  1. close the fie descriptors 0,1,2 inherited by INIT
+  2. open argv[1] 3 times as in(0), out(1), err(2)
+  3. settty(argv[1]) // sets tty name string in PROC.tty
+  4. Open /etc/passwd file for READ
+  5.while(1) print login info: username, password, get username nad upass.
+    For each line in passwd file do:
+      tokenize account line;
+  6. if(user hasvalid account):
+  7.  change uid,gid, to users uid, gid; chuid
+      change cwd to user's home dir;  chdir
+      close opened passwd file;     close
+      
+  8. exec to program in user account;  exec
+
+
+
+
+*/
+
+char buf[1024], username[64], upass[64];
+char pline[64], mytty[64], *tokenInfo[8];
+char *cp, *delim, *cpp, *delimq;
+int gid, uid, i, n;
+
+int in, out, err;
+int fd;
+
+char whattty[64];
+
+int main(int argc, char *argv[])
 {
-	int index = 1;
-	tokens[0] = path;
-	while(*path)
-	{
-		if (*path == delim)
-		{
-			*path = 0;
-			tokens[index++] = ++path;
-		} else {
-			path++;
-		}
-	}
-	return index;
-}
+  //printf("proc %d in LOGIN: argv[1]=%s\n", getpid(), argv[1]);
 
-main (argc, argv) int argc; char* argv[];
-{
-	char usrname[64], password[64], passbuf[1024];
-	char name[64], home[64], shell[64];
-	int gid, uid;
+  //1. closing file descriptors 0 and 1 2 inherited by INIT
 
-	char* tokens[10];
-	char delim = ':';
-	char* tty = argv[1];
+  close(0);
+  close(1);
+  close(2);
+  strcpy(mytty, argv[1]);
 
-	close(0);
-	close(1);
-	close(2);
+  //2. open the argv[1] which is mytty 3 times for in out and err
 
-	stdin = open(tty, 0);
-	stdout = open(tty, 1);
-	stderr = open(tty, 2);
+  in = open(mytty, 0);
+  out = open(mytty, 1);
+  err = open(mytty, 1);
 
-	printf("fd's for stdin=%d stdout=%d stderr=%d\n", stdin, stdout, stderr);
+  //set tty in name string PROC.tty
+  settty(mytty);
 
-	while(1)
-	{
-		STAT s;
-		int size_remain;
-		int passfd = open("/etc/passwd", O_RDONLY);
-		//chdir("user");
-		//exec("/bin/ls");
-		printf("Stacy's login: ");
-		gets(usrname);
-		
-		printf("password: ");
-		gets(password);
+  // open passwd file for read
+  /** open /etc/passwd file to get username's uid, gid, HOME, program **/
+  fd = open("/etc/passwd", 0);
+  if (fd < 0)
+  {
+    printf("Error reading passwd file\n");
+    exit(1);
+  }
 
-		stat("/etc/passwd", &s);
-		size_remain = s.st_size;
+  printf("Stacy's Login. Welcome!\n");
+  printf("Stacy's Login: open %s as stdin=%d, stdout=%d, stderr=%d\n", mytty, in, out, err);
 
-		printf("size_remain=%d\n", size_remain);
+  while (1)
+  {
 
-		while(1)
-		{
-			int i;
-			for (i = 0; i < 1024 && size_remain > 0; i++)
-			{
-				read(passfd, &passbuf[i], 1);
-				size_remain--;
+    print2f("Username:");
+    gets(username);
+    print2f("password:");
+    gets(upass);
 
-				if (passbuf[i] == '\n') {
-					passbuf[i+1] = '\0';
-					break;
-				}
-			}
+    //for each line
+    n = read(fd, buf, 2048);
+    buf[n] = 0;
 
-			tokenize(passbuf, tokens, ':');
-			if((strcmp(usrname, tokens[0]) == 0 && strcmp(password, tokens[1]) == 0))
-			{
-				gid = atoi(tokens[2]);
-				uid = atoi(tokens[3]);
-				strcpy(name, tokens[4]);
-				strcpy(home, tokens[5]);
-				strcpy(shell, tokens[6]);
-				
-				printf("%s %s %d %d %s %s %s \n", usrname, password, gid, uid, name, home, shell);
-				chdir(home);
-				pwd();
-				
-				//strcpy(shell, "/bin/");
-				//strcat(shell, tokens[6]);
-				printf("shell is %s\n", shell);
-				shell[strlen(shell) - 1] = 0;
-				exec(shell);
-				signal(2,1);
-			} else {
-				printf("user was %s with pw %s \n", tokens[0], tokens[1]);
-			}
+    cp = delim = buf;
 
-			if (size_remain == 0)
-				break;
-		}
-		close(passfd);
-	}
-	
+    //tokenize line
+    while (cp < &buf[n])
+    {
+      while (*delim != '\n')
+      { //while not a new line
+        if (*delim == ' ')
+          *delim = '-'; // check if it is a space, : or - . if it is we advance, and set that location to null, like normal strtok
+        if (*delim == ':')
+          *delim = ' ';
+        delim++;
+      }
+      *delim = 0;
+      strcpy(pline, cp);
+      cpp = delimq = pline;
+      i = 0;
+      while (*delimq)
+      {
+        if (*delimq == ' ')
+        {
+          *delimq = 0;
+          tokenInfo[i] = cpp; //update each section of info with: uid, gid, user home, and such.
+          i++;
+          delimq++;
+          cpp = delimq;
+          continue;
+        }
+        delimq++;
+      }
+
+      //check if the user has a valid acount
+      if (strcmp(username, tokenInfo[0]) == 0 && strcmp(upass, tokenInfo[1]) == 0)
+      {
+        printf("Stacys_Login : Welcome user: %s\n", username);
+        printf("Stacys_login : cd to HOME=%s  ", tokenInfo[5]);
+        chdir(tokenInfo[5]); // cd to users home dir
+
+        gid = atoi(tokenInfo[2]);
+        uid = atoi(tokenInfo[3]);
+        printf("change uid to %d\n", uid);
+        chuid(uid, 0); // change gid, uid
+
+        printf("exec to /bin/sh .....\n");
+        close(fd);  //close passwd file
+        exec("sh"); //exec to my sh
+      }
+      delim++;
+      cp = delim;
+    }
+    printf("login failed, try again\n");
+    close(fd);
+  }
 }

@@ -1,3 +1,4 @@
+
 #include "ucode.c"
 
 #define BLK 1024
@@ -32,7 +33,26 @@ void ls_file(STAT *sp, char *name, char *path)
 
     mask = 000400;
     // uses bitwise and to check each byte in the mode.
-
+    /*
+    for (k = 0; k < 3; k++)
+    {
+        if (mode & mask)
+            mputc('r');
+        else
+            mputc('-');
+        mask = mask >> 1;
+        if (mode & mask)
+            mputc('w');
+        else
+            mputc('-');
+        mask = mask >> 1;
+        if (mode & mask)
+            mputc('x');
+        else
+            mputc('-');
+        mask = mask >> 1;
+    }
+    */
     if ((mode & (1 << 8)))
         mputc('r');
     else
@@ -100,19 +120,13 @@ void ls_dir(STAT *sp, char *path)
 {
     STAT dstat, *dsp;
     long size;
-    char temp[255]; //etx2 filename os 1  255 chars
+    char temp[32];
     int r;
 
-    
     size = sp->st_size;
-
-
-  
-    
 
     //open dir file for read
     fd = open(file, O_RDONLY);
-
     while ((n = read(fd, buf, 1024)))
     {
         cp = buf;
@@ -127,7 +141,7 @@ void ls_dir(STAT *sp, char *path)
             strcpy(f, file);
             strcat(f, "/");
             strcat(f, temp);
-            if (stat(f, dsp) >= 0) //if its a file, then stat the file
+            if (stat(f, dsp) >= 0)
                 ls_file(dsp, temp, path);
 
             cp += dp->rec_len;
@@ -142,9 +156,7 @@ int main(int argc, char *argv[])
     int r, i;
     sp = &utat;
 
-    prints("THIS IS STACY'S ls PROGRAM\n");
-    prints("\n");
-    
+    printf("Stacy's_ls\n");
 
     if (argc == 1)
     {
