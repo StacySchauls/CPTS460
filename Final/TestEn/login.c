@@ -1,5 +1,5 @@
 #include "ucode.c"
-/* ALGORITH FOR LOGOUT
+/* ALGORITH FOR login
 
 
   upon entry, the first argument, argv[0] = login, argc[1] = /dev/ttyX
@@ -58,11 +58,11 @@ int main(int argc, char *argv[])
   fd = open("/etc/passwd", 0);
   if (fd < 0)
   {
-    printf("Error reading passwd file\n");
+    print2f("Error reading passwd file\n");
     exit(1);
   }
 
-  printf("Stacy's Login. Welcome!\n");
+  print2f("Stacy's Login. Welcome!\n");
   printf("Stacy's Login: open %s as stdin=%d, stdout=%d, stderr=%d\n", mytty, in, out, err);
 
   while (1)
@@ -117,17 +117,17 @@ int main(int argc, char *argv[])
 
         gid = atoi(tokenInfo[2]);
         uid = atoi(tokenInfo[3]);
-        printf("change uid to %d\n", uid);
+        //printf("change uid to %d\n", uid);
         chuid(uid, 0); // change gid, uid
 
-        printf("exec to /bin/sh .....\n");
+        print2f("exec to /bin/sh .....\n");
         close(fd);  //close passwd file
         exec("sh"); //exec to my sh
       }
       delim++;
       cp = delim;
     }
-    printf("login failed, try again\n");
+    print2f("login failed, try again\n");
     close(fd);
   }
 }

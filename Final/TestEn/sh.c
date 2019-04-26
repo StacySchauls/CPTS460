@@ -206,19 +206,19 @@ char **tail;
   return 1; // head points at buf; return head
 }
 
-int do_pipe(char *buf, int *lpd)
+int do_pipe(char *buf, int *rpd)
 {
   int hasPipe, pid;
   char *tail;
   int lpd[2];
 
-  if (lpd)
+  if (rpd)
   { //if there was a pipe passed in
     // as writer on RIGHT side pipe
-    close(lpd[0]);
+    close(rpd[0]);
     close(1);
-    dup(lpd[1]);
-    close(lpd[1]);
+    dup(rpd[1]);
+    close(rpd[1]);
   }
 
   //scan for a pipe
@@ -247,7 +247,7 @@ int do_pipe(char *buf, int *lpd)
       close(0);
       dup(lpd[0]);
       close(lpd[0]);
-      printf("proc %d exec %s\n", getpid(), tail);
+      //printf("proc %d exec %s\n", getpid(), tail);
       command(tail);
     }
     else

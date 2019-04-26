@@ -1,83 +1,96 @@
-
 #include "ucode.c"
-
 #define printk printf
 
 int console, s0, s1;
 
-//login to 0
 void login()
 {
   exec("login /dev/tty0");
 }
-//login to s0
-void login1()
+void s0login()
 {
   exec("login /dev/ttyS0");
 }
-
-//login to s1
-void login2()
+void s1login()
 {
   exec("login /dev/ttyS1");
 }
 
-//modify book code from singlular tty0 to be able to log into s0 and s1 as well, for each terminal
-void parent() //this is P1's code
+void another(int pid)
+{
+   printf("-----------------------------------------------------\n");
+   printf("KCINIT: Oh my God! My beloved login child %d has died\n", pid);
+   printf("KCINIT: Oh well, I'll just fork another one!\n");
+   printf("-----------------------------------------------------\n");
+}
+        
+void parent()
 {
   int pid, status;
-  prints("Stacy's_INIT is waiting for ZOMMMBIE!!\n");
-  while (1)
-  {
+  printf("KCINIT : waiting .....\n");
+  while(1){
     pid = wait(&status);
 
-    if (pid == console) //if console login process died
-    {
-      prints("Stacy's_INIT forks a new console login\n");
-      console = fork();
-      if (console)
-        continue;
-      else
-        login();
+    if (pid==console){
+      //another(pid);
+       console = fork();
+       if (console)
+	 continue;
+       else
+	 login();
     }
-    if (pid == s0)
-    {
-      s0 = fork();
-      if (s0)
-        continue;
-      else
-        login1();
+    if (pid==s0){
+       s0 = fork();
+       if (s0)
+          continue;
+       else
+          s0login();
     }
-
-    printf("Stacy's_INIT: I just buried an orphan child proc %d\n", pid);
+    if (pid==s1){
+       s1 = fork();
+       if (s1)
+          continue;
+       else
+          s1login();
+    }
+    printf("KCINIT: I just buried an orphan child task %d\n", pid);
   }
 }
 
-int main(int argc, char *argv[])
+void cdserver()
+{
+  exec("cdserver");
+  exit(1);
+}
+
+int main(int argc, char *argv[ ])
 {
   int in, out;
   int pid;
-  in = open("/dev/tty0", O_RDONLY);
+  in  = open("/dev/tty0", O_RDONLY);
   out = open("/dev/tty0", O_WRONLY);
 
-  prints("Stacy's_INIT forks a login proc on console\n");
-  console = fork();
-  if (console) //this is the parent
-  {
+  printf("proc %d in Umode ", getpid());
+  printf("argc=%d %s %s\n", argc, argv[0], argv[1]);
 
-    prints("Stacy_INIT forks login on ttyS0\n");
+  printf("%s\n", "KCINIT: fork a login task on console");
+  console = fork();
+  if (console){ // parent
+
+    printf("fork login on ttyS0\n");
     s0 = fork();
-    if (s0) //s0 the parent
-    {
-      parent();
+    if (s0){
+      s1 = fork();
+      if (s1)
+         parent();
+      else
+      	s1login();
     }
     else
-    {
-      login1(); //child login on s0
-    }
+      s0login();
   }
-  else //chil ecec to login on tty0
-  {
+  else
     login();
-  }
 }
+
+

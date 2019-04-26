@@ -1,57 +1,69 @@
-/********** test.c file *************/
+
+
 #include "ucode.c"
 
+char *cp, mytty[64];
+
+char realname[64], linkname[64];
+char mybuf[1024];
+int i;
+char *cp;
+char nline='\n';
+char r='\r';
 int main(int argc, char *argv[ ])
 {
-  int i;
+    int fd, n;
+    char buf[1244], dummy;
 
-  int pid = getpid();
-  prints("+++++++++++++++++++++++++++++\n");
-  printf("STACY'S CAT PROGRAM >>MEOW<<\n", pid);
-  prints("+++++++++++++++++++++++++++++\n");
+    print2f("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n\r");
+    print2f("      STACYS MEOW PROGRAM        \n\r"); 
+    print2f("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n\r");   
 
-  char c, lc = 0;
-  int fd;
-  
-  //if there is noinput then we read from stnadard in. Set fd to 0
-  if(argc == 1){
     fd = 0;
-  }
-  else{
-    fd = open(argv[1], O_RDONLY);
-  }
-
-  //check the fd
-
-  if(fd < 0){
-    printf("Could not fine file to cat.\n");
-    return -1;
-  }
-
-  //read the input
-  while( read(fd, &c, 1) > 0)
-  {
-    printc(c);
-    //check the new line chars
-    if(fd == 0)
-    {
-      if(c == '\n' && (lc != '\n' && lc != '\r'))
-        printc('\r');
-    }//else if we're reading from stdin we look for the return chars
-    else
-    {
-      if(c == '\r' && (lc != '\n' && lc != '\r'))
-      {
-        printc('\n');
-        printc('\r');
+    if (argc > 1){
+      fd = open(argv[1], O_RDONLY);
+      if (fd < 0){
+    	printf("cat %s error\n", argv[1]);
+        exit(0);
       }
     }
-    lc = c;
-  }
-  //cat done
-  printf("\n");
-  printf("\n");
-  close(fd);
-  return 1;
-  
+
+    if(argc == 1){
+      fd = 0;
+      while(gets(buf)){
+        print2f(buf);
+        print2f("\n\r");
+      }
+      exit(0);
+    }
+
+    while (n = read(fd, buf, 1024))
+    {
+        buf[n] = 0;
+        cp = buf;
+        if (fd)
+        {
+           
+            for (i = 0; i < n; i++)
+            {
+                write(1, &buf[i], 1);
+                if (buf[i] == '\n')
+                {
+                    write(2, &r, 1);
+                }
+            }
+        }
+
+        else
+        {
+            cp = buf;
+            if (*cp == '\r')
+            {
+                write(2, &nline, 1);
+            }
+            write(1, cp, 1);
+        }
+}
+    close(fd);
+    exit(0);
 }

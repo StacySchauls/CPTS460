@@ -16,7 +16,7 @@ int main(int argc, char *argv[ ])
   src = open(argv[1], O_RDONLY);
   dest = open(argv[2], O_WRONLY | O_CREAT);
 
-  while((i = read(src, buf, 256)) > 0)
+  while((i = read(src, buf, 1024)))
   {
       write(dest, buf, i);
   }

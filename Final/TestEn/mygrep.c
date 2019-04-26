@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
 
     if (argc == 1)
     {
-        prints("Usage: grep pattern file\n");
+        print2f("Usage: grep pattern file\n");
         return -1;
     }
     else if (argc == 2)
@@ -28,9 +28,9 @@ int main(int argc, char *argv[])
     if (fd >= 0)
     {
 
-        prints("\nSTACY'S GREP\n");
+        print2f("\nSTACY'S GREP\n");
         size = strlen(argv[1]);
-        printf("looking for %s\n", argv[1]);
+        
 
         while (searching == 1)
         {
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
                 printf("%d: %s\n", linenum, line);
             }
         }
-        printf("Found %d matches. \n", count);
+        
     }
 
     close(fd);
