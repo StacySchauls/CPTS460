@@ -17,11 +17,14 @@ char *cp;
 void ls_file(STAT *sp, char *name, char *path)
 {
     u16 mode;
-    int mask, k, len;
+    int k, len;
     char fullname[32], linkname[60];
 
+
+    //get the mode of whatever we are stat-ing
     mode = sp->st_mode;
 
+    //check the mode
     if ((mode & 0xF000) == 0x4000) //print file type as d
         mputc('d');
 
@@ -30,7 +33,7 @@ void ls_file(STAT *sp, char *name, char *path)
     else if ((mode & 0xF000) == 0x8000) //print file type as -
         mputc('-');
 
-    mask = 000400;
+
     // uses bitwise and to check each byte in the mode.
 
     if ((mode & (1 << 8)))
@@ -76,10 +79,13 @@ void ls_file(STAT *sp, char *name, char *path)
     else
         printf(" %d ", sp->st_nlink);
 
+    //print uid and gid
     printf(" %d  %d", sp->st_uid, sp->st_gid);
 
+    //print size
     printf("%d ", sp->st_size);
 
+    //print name
     printf("%s", name);
 
     // symlink file
@@ -96,6 +102,7 @@ void ls_file(STAT *sp, char *name, char *path)
     printf("\n\r");
 }
 
+//function to ls a directory
 void ls_dir(STAT *sp, char *path)
 {
     STAT dstat, *dsp;
@@ -103,15 +110,18 @@ void ls_dir(STAT *sp, char *path)
     char temp[255]; //etx2 filename os 1  255 chars
     int r;
 
-    
+    //get the size
     size = sp->st_size;
 
 
-  
-    
+
+
 
     //open dir file for read
     fd = open(file, O_RDONLY);
+
+    /*read from the directory until there is nothing left*/
+
 
     while ((n = read(fd, buf, 1024)))
     {
@@ -120,16 +130,23 @@ void ls_dir(STAT *sp, char *path)
 
         while (cp < buf + 1024)
         {
+            //print the contents of the directory that we are looking at
             dsp = &dstat;
+            //copy nam
             strncpy(temp, dp->name, dp->name_len);
             temp[dp->name_len] = 0;
             f[0] = 0;
+
             strcpy(f, file);
             strcat(f, "/");
             strcat(f, temp);
+
+            //check if the current item is a file or not
             if (stat(f, dsp) >= 0) //if its a file, then stat the file
                 ls_file(dsp, temp, path);
 
+            /*if its not, we update the current pointer wby the recrod length of what 
+            we just ls-ed*/
             cp += dp->rec_len;
             dp = (DIR *)cp;
         }
@@ -142,19 +159,20 @@ int main(int argc, char *argv[])
     int r, i;
     sp = &utat;
 
-    prints("THIS IS STACY'S ls PROGRAM\n");
-    prints("\n");
-    
+    print2f("THIS IS STACY'S ls PROGRAM\n");
+    print2f("\n");
 
+    //if no file given, ls the current dir
     if (argc == 1)
     {
         strcpy(file, "./");
     }
-    else
+    else //else ls whatever was provided
     {
         strcpy(file, argv[1]);
     }
 
+    //check if the stat is valid
     if (stat(file, sp) < 0)
     {
         printf("cannot stat %s\n", argv[1]);

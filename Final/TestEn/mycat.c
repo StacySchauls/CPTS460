@@ -13,12 +13,15 @@ char r='\r';
 int main(int argc, char *argv[ ])
 {
     int fd, n;
-    char buf[1244], dummy;
+    char buf[1024], dummy;
 
     print2f("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n\r");
     print2f("      STACYS MEOW PROGRAM        \n\r"); 
     print2f("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n\r");   
 
+
+
+    /* open file desciptor, if stdin, get input, write it. else, read from the file we opened, and write it to the current terminal */
     fd = 0;
     if (argc > 1){
       fd = open(argv[1], O_RDONLY);

@@ -11,7 +11,7 @@ for binary excutable commad:
 fork child, look for '&' if there is none, we wait. 
 if there is, we do a pipe for the command
 
-FOR PIPE::
+FOR PIPE:
 pipe function takes cmdine and and int pd
 if (pd) //if has a pie passed in, as WRITER, on pipe pd, close pd[0]; duo2(pd[1],1); close pd[1];
 
@@ -179,8 +179,7 @@ int main(int argc, char *argv[])
 }
 
 //divides command into head and tail based off rightmost |
-int scan(buf, tail) char *buf;
-char **tail;
+int scan(buf, tail) char *buf; char **tail;
 {
   char *p;
 
@@ -232,7 +231,8 @@ int do_pipe(char *buf, int *rpd)
       printf("proc %d pipe call failed\n", getpid());
       exit(1);
     }
-    // printf("after pipe(): lpd[0|1]=[%d %d]\n", lpd[0], lpd[1]);
+    
+    //fork a child to execute command
     pid = fork();
 
     if (pid < 0)
@@ -241,8 +241,10 @@ int do_pipe(char *buf, int *rpd)
       exit(1);
     }
 
+
+    //make parent the reader on the left side of the pipe
     if (pid)
-    { // parent as reader on left side pipe
+    { 
       close(lpd[1]);
       close(0);
       dup(lpd[0]);

@@ -67,39 +67,42 @@ int main(int argc, char *argv[])
 
   while (1)
   {
-
+    //prompt the user for username and password
     print2f("Username:");
     gets(username);
     print2f("password:");
     gets(upass);
 
+
+    //Next we tokenize the password file. This way we can get the uname, passwd, uid, guid, home, and shell program out of it.
     //for each line
-    n = read(fd, buf, 2048);
+    n = read(fd, buf, 2048);//read one line at a time
     buf[n] = 0;
 
-    cp = delim = buf;
+    cp = delim = buf; //set the char pointer to the begining of the line
 
     //tokenize line
     while (cp < &buf[n])
     {
-      while (*delim != '\n')
-      { //while not a new line
-        if (*delim == ' ')
+      while (*delim != '\n') //while we do not see a new line char
+      { 
+        if (*delim == ' ') //if we find a space, we set delim to a -
           *delim = '-'; // check if it is a space, : or - . if it is we advance, and set that location to null, like normal strtok
         if (*delim == ':')
           *delim = ' ';
         delim++;
       }
       *delim = 0;
-      strcpy(pline, cp);
-      cpp = delimq = pline;
+      strcpy(pline, cp); //copy the oringinal line into pline
+      cpp = delimq = pline; //set a new pointer and new delim
       i = 0;
       while (*delimq)
       {
-        if (*delimq == ' ')
+        if (*delimq == ' ') //look for a space. From the previous section we made a space wherever there was a ':'
         {
-          *delimq = 0;
-          tokenInfo[i] = cpp; //update each section of info with: uid, gid, user home, and such.
+          *delimq = 0; //set that spot as null
+          tokenInfo[i] = cpp; //for each spot that is a space, that is, was delimited, we place the token into our array,
+                              // that array holds the uid, guid, home, shell program
           i++;
           delimq++;
           cpp = delimq;
